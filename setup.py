@@ -1,10 +1,10 @@
 from setuptools import setup
 
 setup(
-    name='alchemiter',
+    name='appeldryck',
     version='0.1',
-    packages=['alchemiter'],
+    packages=['appeldryck'],
     entry_points={
-        'console_scripts': ['alchemiter = alchemiter.alchemiter:alchemiter']
+        'console_scripts': ['dryck = appeldryck.appeldryck:appeldryck']
     }
 )
