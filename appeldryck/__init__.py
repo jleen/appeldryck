@@ -28,8 +28,7 @@ def read_page(filename):
 
 VAR_RE  = re.compile(r'◊(.+)')
 META_RE = re.compile(r'◊(.+?):\s*(.*)')
-FUNC_RE = re.compile(r'◊(.+?){\n?((.|\n)+)\n?}', re.MULTILINE)
-EVAL_RE = re.compile(r'◊{(.+)}◊', re.MULTILINE)
+FUNC_RE = re.compile(r'◊(.+?){')
 
 
 def apply_func(fn, arg, env):
@@ -43,9 +42,29 @@ def parse_page(text):
     return eval_page(text, [])
 
 
+def combine_until_close(tokens):
+    depth = 1
+    out = ''
+    while depth > 0:
+        tok = tokens.__next__()
+        if tok.type in ['FUNC_OPEN', 'EVAL_OPEN', 'BRACE_OPEN']:
+            depth += 1
+        elif tok.type == 'BRACE_CLOSE':
+            depth -= 1
+        if depth > 0:
+            out += tok.value
+    return out
+
+
 def eval_page(text, env):
     parsed = { 'body': '' }
-    for tok in parser.tokenize(text):
+    tokens = parser.tokenize(text)
+    while True:
+        try:
+            tok = tokens.__next__()
+        except StopIteration:
+            break
+
         if tok.type == 'TEXT':
             parsed['body'] += tok.value
         elif tok.type == 'VAR':
@@ -54,14 +73,19 @@ def eval_page(text, env):
         elif tok.type == 'META':
             (k, v) = META_RE.match(tok.value).group(1, 2)
             parsed[k] = v
-        elif tok.type == 'FUNC':
-            (fn, arg) = FUNC_RE.match(tok.value).group(1, 2)
+        elif tok.type == 'FUNC_OPEN':
+            fn = FUNC_RE.match(tok.value).group(1)
+            arg = combine_until_close(tokens)
             parsed['body'] += apply_func(fn, arg, env)
-        elif tok.type == 'EVAL':
-            exp = EVAL_RE.match(tok.value).group(1)
+        elif tok.type == 'EVAL_OPEN':
+            exp = combine_until_close(tokens)
             parsed['body'] += eval(exp, { 'refs': {'foo': 'bar'}})
+        elif tok.type == 'BRACE_OPEN':
+            inner = combine_until_close(tokens)
+            parsed['body'] += '{' + inner + '}'
+
     return parsed
-        
+
 
 def render_page(template, env):
     page = eval_page(template, env)

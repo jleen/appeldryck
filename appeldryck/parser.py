@@ -1,45 +1,56 @@
 from .ply import lex
 
-# TODO
-tokens = ('X',)
-
-
-def t_FUNC(t):
-    r'◊\w+{(.|\n)+?}}'
-    return t
-
-
-def t_META(t):
-    r'◊\w+\s*:\s*.*\n'
-    return t
-
-
-def t_VAR(t):
-    r'◊\w+'
-    return t
-
-
-def t_EVAL(t):
-    r'◊{([^◊]|\n)+}◊'
-    # TODO: Would be nice to somehow match braces inside the Python
-    # so we don't need the terminal lozenge.
-    return t
-
-
-def t_TEXT(t):
-    r'([^◊]|\n)+'
-    return t
-
-
-def t_error(t):
+class Lexer():
     # TODO
-    raise Exception('Uh oh: ' + str(t))
+    tokens = ('X',)
 
 
-lexer = lex.lex()
+    def t_FUNC_OPEN(self, t):
+        r'◊\w+{'
+        return t
+
+
+    def t_META(self, t):
+        r'◊\w+\s*:\s*.*\n'
+        return t
+
+
+    def t_VAR(self, t):
+        r'◊\w+'
+        return t
+
+
+    def t_EVAL_OPEN(self, t):
+        r'◊{'
+        return t
+
+
+    def t_BRACE_OPEN(self, t):
+        r'{'
+        return t
+
+
+    def t_BRACE_CLOSE(self, t):
+        r'}'
+        return t
+
+
+    def t_TEXT(self, t):
+        r'([^◊{}]|\n)+'
+        return t
+
+
+    def t_error(self, t):
+        # TODO
+        raise Exception('Uh oh: ' + str(t))
+
+
+    def lexer(self):
+        return lex.lex(module=self)
 
 
 def tokenize(text):
+    lexer = Lexer().lexer()
     lexer.input(text)
     while True:
         token = lexer.token()
