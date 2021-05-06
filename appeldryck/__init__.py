@@ -1,6 +1,8 @@
 import re
 import sys
 
+import marko
+
 from . import parser
 
 
@@ -56,6 +58,12 @@ def combine_until_close(tokens):
     return out
 
 
+def eval_text(text):
+    # For now, just directly convert Markdown to HTML.
+    # TODO: Convert to Appeldryck and execute tag functions.
+    return marko.convert(text)
+
+
 def eval_page(text, env):
     parsed = { 'body': '' }
     tokens = parser.tokenize(text)
@@ -66,7 +74,7 @@ def eval_page(text, env):
             break
 
         if tok.type == 'TEXT':
-            parsed['body'] += tok.value
+            parsed['body'] += eval_text(tok.value)
         elif tok.type == 'VAR':
             v = VAR_RE.match(tok.value).group(1)
             parsed['body'] += env[v]
@@ -83,6 +91,9 @@ def eval_page(text, env):
         elif tok.type == 'BRACE_OPEN':
             inner = combine_until_close(tokens)
             parsed['body'] += '{' + inner + '}'
+        elif tok.type == 'BRACE_CLOSE':
+            # Just in case we get a mismatched close paren. Harmless.
+            parsed['body'] += tok.value
 
     return parsed
 

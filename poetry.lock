@@ -1,4 +1,17 @@
 [[package]]
+name = "marko"
+version = "1.0.2"
+description = "A markdown parser with high extensibility."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+benchmark = ["commonmark (>=0.9,<1.0)", "markdown (>=3.3,<4.0)", "markdown-it-py (>=0.6,<1.0)", "mistune (>=0.8,<1.0)", "mistletoe (>=0.7,<1.0)"]
+codehilite = ["pygments"]
+toc = ["python-slugify"]
+
+[[package]]
 name = "watchdog"
 version = "2.0.2"
 description = "Filesystem events monitoring"
@@ -12,9 +25,13 @@ watchmedo = ["PyYAML (>=3.10)", "argh (>=0.24.1)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "2cebd4a2d6171a846a2af5528f8754645d89568d766ec0d283815185c537bbc2"
+content-hash = "86930d474db3ad3ef63fadafe85d4c8a210775cf5e34188953e9c9fbd0446542"
 
 [metadata.files]
+marko = [
+    {file = "marko-1.0.2-py3-none-any.whl", hash = "sha256:ef40ef5853d5eae066024066764776fc6deb7d568adc16fbcad306d7bcf22a45"},
+    {file = "marko-1.0.2.tar.gz", hash = "sha256:bdf2e46de56f022f3930fb17f7bede90a8bc2ea27bdc68a887a024e1e5452b37"},
+]
 watchdog = [
     {file = "watchdog-2.0.2-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:1f518a6940cde8720b8826a705c164e6b9bd6cf8c00f14269ffac51e017e06ec"},
     {file = "watchdog-2.0.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:74528772516228f6a015a647027057939ff0b695a0b864cb3037e8e1aabc7ca0"},
