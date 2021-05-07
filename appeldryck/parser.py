@@ -1,8 +1,14 @@
-from .ply import lex
+from ply import lex
 
 class Lexer():
     # TODO
-    tokens = ('X',)
+    tokens = ('FUNC_OPEN',
+              'META',
+              'VAR',
+              'EVAL_OPEN',
+              'BRACE_OPEN',
+              'BRACE_CLOSE',
+              'TEXT')
 
 
     def t_FUNC_OPEN(self, t):

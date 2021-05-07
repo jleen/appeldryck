@@ -12,6 +12,14 @@ codehilite = ["pygments"]
 toc = ["python-slugify"]
 
 [[package]]
+name = "ply"
+version = "3.11"
+description = "Python Lex & Yacc"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "watchdog"
 version = "2.0.2"
 description = "Filesystem events monitoring"
@@ -25,12 +33,16 @@ watchmedo = ["PyYAML (>=3.10)", "argh (>=0.24.1)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "86930d474db3ad3ef63fadafe85d4c8a210775cf5e34188953e9c9fbd0446542"
+content-hash = "e3e6b6d5bf12764c4daf92316ce784791679f25232da4ad851fdd03722f9efc7"
 
 [metadata.files]
 marko = [
     {file = "marko-1.0.2-py3-none-any.whl", hash = "sha256:ef40ef5853d5eae066024066764776fc6deb7d568adc16fbcad306d7bcf22a45"},
     {file = "marko-1.0.2.tar.gz", hash = "sha256:bdf2e46de56f022f3930fb17f7bede90a8bc2ea27bdc68a887a024e1e5452b37"},
+]
+ply = [
+    {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
+    {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
 ]
 watchdog = [
     {file = "watchdog-2.0.2-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:1f518a6940cde8720b8826a705c164e6b9bd6cf8c00f14269ffac51e017e06ec"},
