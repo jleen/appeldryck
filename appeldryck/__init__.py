@@ -89,7 +89,7 @@ def squirrel(nuts, nut):
     return k
 
 
-def eval_page(text, env):
+def eval_page(text, env, raw=False):
     parsed = {}
     body = ''
     nuts = {}
@@ -132,7 +132,8 @@ def eval_page(text, env):
             body += tok.value
 
     # Evaluate Markdown while ◊'s are still squirreled.
-    body = eval_text(body)
+    if not raw:
+        body = eval_text(body)
 
     # Substitute the evaluated ◊'s for the squirreled placeholders.
     for k, v in nuts.items():
@@ -143,7 +144,7 @@ def eval_page(text, env):
 
 
 def render_page(template, env):
-    page = eval_page(template, env)
+    page = eval_page(template, env, raw=True)
     # TODO: What to do if meta variables get returned?
     return page
 
