@@ -1,5 +1,6 @@
 import re
 import sys
+import uuid
 
 import marko
 
@@ -58,15 +59,43 @@ def combine_until_close(tokens):
     return out
 
 
+class DryckHtmlRenderer(marko.HTMLRenderer):
+    pass
+
+
+markdown = marko.Markdown(renderer=DryckHtmlRenderer)
+
+
+def eval_arg(text):
+    pass
+
 def eval_text(text):
     # For now, just directly convert Markdown to HTML.
     # TODO: Convert to Appeldryck and execute tag functions.
-    return marko.convert(text)
+    parsed = markdown.parse(text)
+    print([type(c) for c in parsed.children])
+    print(markdown.render(parsed))
+    print('---')
+    return markdown.render(parsed)
+
+
+def gensym():
+    return str(uuid.uuid4())
+
+
+def squirrel(nuts, nut):
+    k = gensym()
+    nuts[k] = nut
+    return k
 
 
 def eval_page(text, env):
-    parsed = { 'body': '' }
+    parsed = {}
+    body = ''
+    nuts = {}
+
     tokens = parser.tokenize(text)
+
     while True:
         try:
             tok = tokens.__next__()
@@ -74,27 +103,42 @@ def eval_page(text, env):
             break
 
         if tok.type == 'TEXT':
-            parsed['body'] += eval_text(tok.value)
+            body += tok.value
+
         elif tok.type == 'VAR':
             v = VAR_RE.match(tok.value).group(1)
-            parsed['body'] += env[v]
+            body += squirrel(nuts, env[v])
+
         elif tok.type == 'META':
             (k, v) = META_RE.match(tok.value).group(1, 2)
             parsed[k] = v
+
         elif tok.type == 'FUNC_OPEN':
             fn = FUNC_RE.match(tok.value).group(1)
             arg = combine_until_close(tokens)
-            parsed['body'] += apply_func(fn, arg, env)
+            body += squirrel(nuts, apply_func(fn, arg, env))
+
         elif tok.type == 'EVAL_OPEN':
             exp = combine_until_close(tokens)
-            parsed['body'] += eval(exp, { 'refs': {'foo': 'bar'}})
+            body += squirrel(nuts,
+                                       eval(exp, { 'refs': {'foo': 'bar'}}))
+
         elif tok.type == 'BRACE_OPEN':
             inner = combine_until_close(tokens)
-            parsed['body'] += '{' + inner + '}'
+            body += '{' + inner + '}'
+
         elif tok.type == 'BRACE_CLOSE':
             # Just in case we get a mismatched close paren. Harmless.
-            parsed['body'] += tok.value
+            body += tok.value
 
+    # Evaluate Markdown while ◊'s are still squirreled.
+    body = eval_text(body)
+
+    # Substitute the evaluated ◊'s for the squirreled placeholders.
+    for k, v in nuts.items():
+        body = body.replace(k, v)
+
+    parsed['body'] = body
     return parsed
 
 
