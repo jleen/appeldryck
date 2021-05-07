@@ -35,10 +35,10 @@ FUNC_RE = re.compile(r'◊(.+?){')
 
 
 def apply_func(fn, arg, env):
-    # TODO: Are lazy semantics actually what we want?
-    ret = sys.modules['__main__'].__dict__[fn](arg)
-    return eval_page(ret, env)['body']
     # TODO: What to do if meta variables get returned?
+    parsed_arg = eval_page(arg, env, tight=True)['body']
+    ret = sys.modules['__main__'].__dict__[fn](parsed_arg)
+    return ret
 
 
 def parse_page(text):
@@ -69,10 +69,14 @@ markdown = marko.Markdown(renderer=DryckHtmlRenderer)
 def eval_arg(text):
     pass
 
-def eval_text(text):
+
+def eval_text(text, tight):
     # For now, just directly convert Markdown to HTML.
     # TODO: Convert to Appeldryck and execute tag functions.
     parsed = markdown.parse(text)
+    if tight:
+        for child in parsed.children:
+            child._tight = True
     print([type(c) for c in parsed.children])
     print(markdown.render(parsed))
     print('---')
@@ -89,7 +93,7 @@ def squirrel(nuts, nut):
     return k
 
 
-def eval_page(text, env, raw=False):
+def eval_page(text, env, raw=False, tight=False):
     parsed = {}
     body = ''
     nuts = {}
@@ -133,7 +137,7 @@ def eval_page(text, env, raw=False):
 
     # Evaluate Markdown while ◊'s are still squirreled.
     if not raw:
-        body = eval_text(body)
+        body = eval_text(body, tight)
 
     # Substitute the evaluated ◊'s for the squirreled placeholders.
     for k, v in nuts.items():
