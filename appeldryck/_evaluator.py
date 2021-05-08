@@ -138,7 +138,6 @@ def eval_page(text, env, raw=False, tight=False) -> str:
         # so the Markdown parser doesn't evaluate them.
 
         elif tok.type == 'VAR':
-            env.suppress = 'suppress'
             env.br = 'br'
             v = VAR_RE.match(tok.value).group(1)
             val = getattr(env, v)
@@ -185,8 +184,11 @@ def render_page(template, env):
 
 
 def render(env, page_filename, template_filename, out_filename):
-    env.__dict__.update(base_env())
-    read_page(page_filename, env)
-    template = read_file(template_filename)
-    out = render_page(template, env)
-    write_file(out_filename, out)
+    try:
+        env.__dict__.update(base_env())
+        read_page(page_filename, env)
+        template = read_file(template_filename)
+        out = render_page(template, env)
+        write_file(out_filename, out)
+    except SuppressPageGenerationException:
+        pass
