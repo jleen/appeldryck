@@ -138,7 +138,6 @@ def eval_page(text, env, raw=False, tight=False) -> str:
         # so the Markdown parser doesn't evaluate them.
 
         elif tok.type == 'VAR':
-            env.br = 'br'
             v = VAR_RE.match(tok.value).group(1)
             val = getattr(env, v)
             if callable(val):
@@ -153,7 +152,6 @@ def eval_page(text, env, raw=False, tight=False) -> str:
 
         elif tok.type == 'EVAL_OPEN':
             exp = combine_until_close(tokens)
-            env.refs = {'foo': 'bar'}
             body += squirrel(nuts, eval(exp, env.__dict__))
 
         elif tok.type == 'WIKI_LINK':
