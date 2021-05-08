@@ -22,27 +22,30 @@ def write_file(filename, text):
         f.write(text)
 
 
-def read_page(filename):
+def read_page(filename, env):
     raw_text = read_file(filename)
-    page = parse_page(raw_text)
-    page['filename'] = filename.split('.')[0]
-    return page
+    env.filename = filename.split('.')[0]
+    env.body = eval_page(raw_text, env)
 
 
 VAR_RE  = re.compile(r'◊(.+)')
 META_RE = re.compile(r'◊(.+?):\s*(.*)')
 FUNC_RE = re.compile(r'◊(.+?){')
+WIKI_RE = re.compile(r'\[\[(.+?)(\|(.*))?]]')
 
 
-def apply_func(fn, arg, env):
+def apply_func(fn, args, env, eval_args=True):
     # TODO: What to do if meta variables get returned?
-    parsed_arg = eval_page(arg, env, tight=True)['body']
-    ret = sys.modules['__main__'].__dict__[fn](parsed_arg)
+    if eval_args:
+        parsed_args = [eval_page(arg, env, tight=True) for arg in args]
+    else:
+        parsed_args = args
+    ret = fn(*parsed_args)
     return ret
 
 
-def parse_page(text):
-    return eval_page(text, [])
+def base_env():
+    return sys.modules['__main__'].__dict__
 
 
 def combine_until_close(tokens):
@@ -77,9 +80,6 @@ def eval_text(text, tight):
     if tight:
         for child in parsed.children:
             child._tight = True
-    print([type(c) for c in parsed.children])
-    print(markdown.render(parsed))
-    print('---')
     return markdown.render(parsed)
 
 
@@ -93,8 +93,7 @@ def squirrel(nuts, nut):
     return k
 
 
-def eval_page(text, env, raw=False, tight=False):
-    parsed = {}
+def eval_page(text, env, raw=False, tight=False) -> str:
     body = ''
     nuts = {}
 
@@ -106,26 +105,12 @@ def eval_page(text, env, raw=False, tight=False):
         except StopIteration:
             break
 
+        # Plain old text.
+        # These tokens just get passed through to the next parsing layer,
+        # which is the Markdown parser.
+
         if tok.type == 'TEXT':
             body += tok.value
-
-        elif tok.type == 'VAR':
-            v = VAR_RE.match(tok.value).group(1)
-            body += squirrel(nuts, env[v])
-
-        elif tok.type == 'META':
-            (k, v) = META_RE.match(tok.value).group(1, 2)
-            parsed[k] = v
-
-        elif tok.type == 'FUNC_OPEN':
-            fn = FUNC_RE.match(tok.value).group(1)
-            arg = combine_until_close(tokens)
-            body += squirrel(nuts, apply_func(fn, arg, env))
-
-        elif tok.type == 'EVAL_OPEN':
-            exp = combine_until_close(tokens)
-            body += squirrel(nuts,
-                                       eval(exp, { 'refs': {'foo': 'bar'}}))
 
         elif tok.type == 'BRACE_OPEN':
             inner = combine_until_close(tokens)
@@ -135,6 +120,55 @@ def eval_page(text, env, raw=False, tight=False):
             # Just in case we get a mismatched close paren. Harmless.
             body += tok.value
 
+        # State manipulators.
+        # These don't directly affect the final markup.
+        # They put stuff into the environment.
+
+        elif tok.type == 'META':
+            (k, v) = META_RE.match(tok.value).group(1, 2)
+            setattr(env, k, v)
+
+        # Evaluated expressions.
+        # These are evaluated in the order seen
+        # (except for expressions within function arguments,
+        # which are evaluated before application, in the usual way,
+        # inside of apply_func).
+        # Return values are considered final markup, *not* program code,
+        # and thus are squirreled
+        # so the Markdown parser doesn't evaluate them.
+
+        elif tok.type == 'VAR':
+            env.suppress = 'suppress'
+            env.br = 'br'
+            v = VAR_RE.match(tok.value).group(1)
+            val = getattr(env, v)
+            if callable(val):
+                body += squirrel(nuts, apply_func(val, (), env))
+            else:
+                body += squirrel(nuts, val)
+
+        elif tok.type == 'FUNC_OPEN':
+            fn = FUNC_RE.match(tok.value).group(1)
+            arg = combine_until_close(tokens)
+            body += squirrel(nuts, apply_func(getattr(env, fn), (arg,), env))
+
+        elif tok.type == 'EVAL_OPEN':
+            exp = combine_until_close(tokens)
+            env.refs = {'foo': 'bar'}
+            body += squirrel(nuts, eval(exp, env.__dict__))
+
+        elif tok.type == 'WIKI_LINK':
+            # [[link|label]] serves as a syntactic sugar for calling ◊link.
+            (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
+            if not label:
+                label = dest
+            body += squirrel(nuts,
+                             apply_func(env.wiki_link, (dest, label), env,
+                                        eval_args=False))
+
+        else:
+            raise Exception('Unknown token returned by parser ' + tok.type)
+
     # Evaluate Markdown while ◊'s are still squirreled.
     if not raw:
         body = eval_text(body, tight)
@@ -143,18 +177,16 @@ def eval_page(text, env, raw=False, tight=False):
     for k, v in nuts.items():
         body = body.replace(k, v)
 
-    parsed['body'] = body
-    return parsed
+    return body
 
 
 def render_page(template, env):
-    page = eval_page(template, env, raw=True)
-    # TODO: What to do if meta variables get returned?
-    return page
+    return eval_page(template, env, raw=True)
 
 
-def dryck(page_filename, template_filename, out_filename):
-    page = read_page(page_filename)
+def render(env, page_filename, template_filename, out_filename):
+    env.__dict__.update(base_env())
+    read_page(page_filename, env)
     template = read_file(template_filename)
-    evaluated = render_page(template, page)
-    print(evaluated['body'])
+    out = render_page(template, env)
+    write_file(out_filename, out)

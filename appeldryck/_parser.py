@@ -6,6 +6,7 @@ class Lexer():
               'META',
               'VAR',
               'EVAL_OPEN',
+              'WIKI_LINK',
               'BRACE_OPEN',
               'BRACE_CLOSE',
               'TEXT')
@@ -26,6 +27,11 @@ class Lexer():
         return t
 
 
+    def t_WIKI_LINK(self, t):
+        r'\[\[[^]]*\]\]'
+        return t
+
+
     def t_EVAL_OPEN(self, t):
         r'◊{'
         return t
@@ -42,13 +48,13 @@ class Lexer():
 
 
     def t_TEXT(self, t):
-        r'([^◊{}]|\n)+'
+        r'(\[?[^[◊{}]|\n)+'
         return t
 
 
     def t_error(self, t):
         # TODO
-        raise Exception('Uh oh: ' + str(t))
+        raise Exception('Somehow, a parse error: ' + str(t))
 
 
     def lexer(self):
