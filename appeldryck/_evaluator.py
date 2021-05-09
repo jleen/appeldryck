@@ -34,10 +34,10 @@ FUNC_RE = re.compile(r'◊(.+?){')
 WIKI_RE = re.compile(r'\[\[(.+?)(\|(.*))?]]')
 
 
-def apply_func(fn, args, env, eval_args=True):
+def apply_func(fn, args, env, inline=True, eval_args=True):
     # TODO: What to do if meta variables get returned?
     if eval_args:
-        parsed_args = [eval_page(arg, env, tight=True) for arg in args]
+        parsed_args = [eval_page(arg, env, tight=inline) for arg in args]
     else:
         parsed_args = args
     ret = fn(*parsed_args)
@@ -148,7 +148,9 @@ def eval_page(text, env, raw=False, tight=False) -> str:
         elif tok.type == 'FUNC_OPEN':
             fn = FUNC_RE.match(tok.value).group(1)
             arg = combine_until_close(tokens)
-            body += squirrel(nuts, apply_func(getattr(env, fn), (arg,), env))
+            inline = not arg.startswith('\n')
+            body += squirrel(nuts, apply_func(getattr(env, fn), (arg,), env,
+                                              inline=inline))
 
         elif tok.type == 'EVAL_OPEN':
             exp = combine_until_close(tokens)
