@@ -1,3 +1,5 @@
 - Accept blank output from ◊functions
 - Maybe rewire context dict to return None instead of throwing for missing attributes
 - Error handling: catch and show markup line & col
+- Smart quotes
+- Tag functions for Markdown
