@@ -63,7 +63,13 @@ def combine_until_close(tokens):
 
 
 class DryckHtmlRenderer(marko.HTMLRenderer):
-    pass
+    def render_heading(self, heading):
+        body = self.render_children(heading)
+        fn = getattr(DryckHtmlRenderer.env, 'heading', None)
+        if fn:
+            return fn(heading.level, body)
+        else:
+            return f'<h{heading.level}>{body}</h{heading.level}>'
 
 
 markdown = marko.Markdown(renderer=DryckHtmlRenderer)
@@ -73,9 +79,11 @@ def eval_arg(text):
     pass
 
 
-def eval_text(text, tight):
-    # For now, just directly convert Markdown to HTML.
-    # TODO: Convert to Appeldryck and execute tag functions.
+def eval_text(env, text, tight):
+    # TODO: Unsquirrel before calling tag functions?
+    # TODO: Get rid of this horrible static hack?
+    # (It's here because marko.Markdown takes a class, not an instance.)
+    DryckHtmlRenderer.env = env
     parsed = markdown.parse(text)
     if tight:
         for child in parsed.children:
@@ -170,7 +178,7 @@ def eval_page(text, env, raw=False, tight=False) -> str:
 
     # Evaluate Markdown while ◊'s are still squirreled.
     if not raw:
-        body = eval_text(body, tight)
+        body = eval_text(env, body, tight)
 
     # Substitute the evaluated ◊'s for the squirreled placeholders.
     for k, v in nuts.items():
