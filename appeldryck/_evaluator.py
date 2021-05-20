@@ -41,6 +41,8 @@ def apply_func(fn, args, env, inline=True, eval_args=True):
     else:
         parsed_args = args
     ret = fn(*parsed_args)
+    if not isinstance(ret, str):
+        raise Exception(f'Expected {fn} to return str, but got {ret}')
     return ret
 
 
@@ -67,7 +69,7 @@ class DryckHtmlRenderer(marko.HTMLRenderer):
         body = self.render_children(heading)
         fn = getattr(DryckHtmlRenderer.env, 'heading', None)
         if fn:
-            return fn(heading.level, body)
+            return apply_func(fn, (heading.level, body), None, eval_args=False)
         else:
             return f'<h{heading.level}>{body}</h{heading.level}>'
 
