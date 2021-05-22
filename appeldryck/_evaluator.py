@@ -64,17 +64,23 @@ def combine_until_close(tokens):
     return out
 
 
-class DryckHtmlRenderer(marko.HTMLRenderer):
+class _DryckHtmlRenderer(marko.HTMLRenderer):
+    '''Should not be directly instantiated.
+    Please call make_DryckHtmlRenderer to curry the env.
+    '''
     def render_heading(self, heading):
         body = self.render_children(heading)
-        fn = getattr(DryckHtmlRenderer.env, 'heading', None)
+        fn = getattr(self.env, 'heading', None)
         if fn:
             return apply_func(fn, (heading.level, body), None, eval_args=False)
         else:
             return f'<h{heading.level}>{body}</h{heading.level}>'
 
 
-markdown = marko.Markdown(renderer=DryckHtmlRenderer)
+def make_DryckHtmlRenderer(the_env):
+    class DryckHtmlRenderer(_DryckHtmlRenderer):
+        env = the_env
+    return DryckHtmlRenderer
 
 
 def eval_arg(text):
@@ -85,7 +91,8 @@ def eval_text(env, text, tight):
     # TODO: Unsquirrel before calling tag functions?
     # TODO: Get rid of this horrible static hack?
     # (It's here because marko.Markdown takes a class, not an instance.)
-    DryckHtmlRenderer.env = env
+    renderer = make_DryckHtmlRenderer(env)
+    markdown = marko.Markdown(renderer=renderer)
     parsed = markdown.parse(text)
     if tight:
         for child in parsed.children:
