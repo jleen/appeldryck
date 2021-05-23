@@ -89,8 +89,6 @@ def eval_arg(text):
 
 def eval_text(env, text, tight):
     # TODO: Unsquirrel before calling tag functions?
-    # TODO: Get rid of this horrible static hack?
-    # (It's here because marko.Markdown takes a class, not an instance.)
     renderer = make_DryckHtmlRenderer(env)
     markdown = marko.Markdown(renderer=renderer)
     parsed = markdown.parse(text)
