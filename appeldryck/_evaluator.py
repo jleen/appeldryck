@@ -37,7 +37,9 @@ WIKI_RE = re.compile(r'\[\[(.+?)(\|(.*))?]]')
 def apply_func(fn, args, env, inline=True, eval_args=True):
     # TODO: What to do if meta variables get returned?
     if eval_args:
-        parsed_args = [eval_page(arg, env, tight=inline) for arg in args]
+        parsed_args = [eval_page(arg, env,
+                                 tight=(not arg.startswith('\n')))
+                       for arg in args]
     else:
         parsed_args = args
     ret = fn(*parsed_args)
@@ -50,17 +52,28 @@ def base_env():
     return sys.modules['__main__'].__dict__
 
 
-def combine_until_close(tokens):
+def combine_until_close(tokens, multi=True):
     depth = 1
-    out = ''
+    out = []
+    current_out = ''
     while depth > 0:
         tok = tokens.__next__()
         if tok.type in ['FUNC_OPEN', 'EVAL_OPEN', 'BRACE_OPEN']:
             depth += 1
         elif tok.type == 'BRACE_CLOSE':
             depth -= 1
-        if depth > 0:
-            out += tok.value
+        elif tok.type == 'BRACE_CLOSE_OPEN':
+            if depth == 1 and multi:
+                # }{ at top depth means
+                # to end the current arg and start a new one.
+                out += [current_out]
+                current_out = ''
+            else:
+                current_out += tok.value
+
+        if depth > 0 and tok.type != 'BRACE_CLOSE_OPEN':
+            current_out += tok.value
+    out += [current_out]
     return out
 
 
@@ -128,10 +141,10 @@ def eval_page(text, env, raw=False, tight=False) -> str:
             body += tok.value
 
         elif tok.type == 'BRACE_OPEN':
-            inner = combine_until_close(tokens)
+            [inner] = combine_until_close(tokens, multi=False)
             body += '{' + inner + '}'
 
-        elif tok.type == 'BRACE_CLOSE':
+        elif tok.type == 'BRACE_CLOSE' or tok.type == 'BRACE_CLOSE_OPEN':
             # Just in case we get a mismatched close paren. Harmless.
             body += tok.value
 
@@ -162,13 +175,11 @@ def eval_page(text, env, raw=False, tight=False) -> str:
 
         elif tok.type == 'FUNC_OPEN':
             fn = FUNC_RE.match(tok.value).group(1)
-            arg = combine_until_close(tokens)
-            inline = not arg.startswith('\n')
-            body += squirrel(nuts, apply_func(getattr(env, fn), (arg,), env,
-                                              inline=inline))
+            args = combine_until_close(tokens)
+            body += squirrel(nuts, apply_func(getattr(env, fn), args, env))
 
         elif tok.type == 'EVAL_OPEN':
-            exp = combine_until_close(tokens)
+            [exp] = combine_until_close(tokens)
             body += squirrel(nuts, eval(exp, env.__dict__))
 
         elif tok.type == 'WIKI_LINK':

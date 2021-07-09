@@ -9,6 +9,7 @@ class Lexer():
               'WIKI_LINK',
               'BRACE_OPEN',
               'BRACE_CLOSE',
+              'BRACE_CLOSE_OPEN',
               'TEXT')
 
 
@@ -34,6 +35,11 @@ class Lexer():
 
     def t_EVAL_OPEN(self, t):
         r'◊{'
+        return t
+
+
+    def t_BRACE_CLOSE_OPEN(self, t):
+        r'}(\n\s*)?{'
         return t
 
 
