@@ -2,6 +2,8 @@ import re
 import sys
 import uuid
 
+from pathlib import Path
+
 import marko
 
 from . import _parser as parser
@@ -11,32 +13,20 @@ class SuppressPageGenerationException(Exception):
     pass
 
 
-def read_file(filename):
-    with open(filename) as f:
-        text = f.read()
-        return text
-
-
-def write_file(filename, text):
-    with open(filename, 'w') as f:
-        f.write(text)
-
-
-def read_page(filename, env):
-    raw_text = read_file(filename)
-    env.filename = filename.split('.')[0]
-    env.body = eval_page(raw_text, env)
-
-
 VAR_RE  = re.compile(r'◊(.+)')
 META_RE = re.compile(r'◊(.+?):\s*(.*)')
 FUNC_RE = re.compile(r'◊(.+?){')
 WIKI_RE = re.compile(r'\[\[(.+?)(\|(.*))?]]')
 
 
-def apply_func(fn, args, env, inline=True, eval_args=True):
+def raw(f):
+    f._appeldryck_raw = True
+    return f
+
+
+def apply_func(fn, args, env):
     # TODO: What to do if meta variables get returned?
-    if eval_args:
+    if not hasattr(fn, '_appeldryck_raw'):
         parsed_args = [eval_page(arg, env,
                                  tight=(not arg.startswith('\n')))
                        for arg in args]
@@ -48,11 +38,7 @@ def apply_func(fn, args, env, inline=True, eval_args=True):
     return ret
 
 
-def base_env():
-    return sys.modules['__main__'].__dict__
-
-
-def combine_until_close(tokens, multi=True):
+def combine_until_close(tokens, multi=False):
     depth = 1
     out = []
     current_out = ''
@@ -78,14 +64,16 @@ def combine_until_close(tokens, multi=True):
 
 
 class _DryckHtmlRenderer(marko.HTMLRenderer):
-    '''Should not be directly instantiated.
+    '''Marko renderer to redirect tag rendering back to the user's functions.
+
+    Should not be directly instantiated.
     Please call make_DryckHtmlRenderer to curry the env.
     '''
     def render_heading(self, heading):
         body = self.render_children(heading)
         fn = getattr(self.env, 'heading', None)
         if fn:
-            return apply_func(fn, (heading.level, body), None, eval_args=False)
+            return apply_func(fn, (heading.level, body), None)
         else:
             return f'<h{heading.level}>{body}</h{heading.level}>'
 
@@ -94,10 +82,6 @@ def make_DryckHtmlRenderer(the_env):
     class DryckHtmlRenderer(_DryckHtmlRenderer):
         env = the_env
     return DryckHtmlRenderer
-
-
-def eval_arg(text):
-    pass
 
 
 def eval_text(env, text, tight):
@@ -111,17 +95,15 @@ def eval_text(env, text, tight):
     return markdown.render(parsed)
 
 
-def gensym():
-    return str(uuid.uuid4())
-
-
 def squirrel(nuts, nut):
-    k = gensym()
+    '''Replace the given nut with a unique placeholder,
+    and remember the placeholder and its translation.'''
+    k = str(uuid.uuid4())
     nuts[k] = nut
     return k
 
 
-def eval_page(text, env, raw=False, tight=False) -> str:
+def eval_page(text, env, raw=False, tight=False):
     body = ''
     nuts = {}
 
@@ -141,7 +123,7 @@ def eval_page(text, env, raw=False, tight=False) -> str:
             body += tok.value
 
         elif tok.type == 'BRACE_OPEN':
-            [inner] = combine_until_close(tokens, multi=False)
+            [inner] = combine_until_close(tokens)
             body += '{' + inner + '}'
 
         elif tok.type == 'BRACE_CLOSE' or tok.type == 'BRACE_CLOSE_OPEN':
@@ -166,6 +148,8 @@ def eval_page(text, env, raw=False, tight=False) -> str:
         # so the Markdown parser doesn't evaluate them.
 
         elif tok.type == 'VAR':
+            # A plain ◊foo with no args
+            # can be either a variable or a nullary function call
             v = VAR_RE.match(tok.value).group(1)
             val = getattr(env, v)
             if callable(val):
@@ -174,22 +158,27 @@ def eval_page(text, env, raw=False, tight=False) -> str:
                 body += squirrel(nuts, val)
 
         elif tok.type == 'FUNC_OPEN':
-            fn = FUNC_RE.match(tok.value).group(1)
-            args = combine_until_close(tokens)
-            body += squirrel(nuts, apply_func(getattr(env, fn), args, env))
+            # A ◊foo followed by one or more {expr}'s
+            # is a function call with arguments.
+            func_name = FUNC_RE.match(tok.value).group(1)
+            fn = getattr(env, func_name)
+            args = combine_until_close(tokens, multi=True)
+            ret = apply_func(fn, args, env)
+            # Squirrel the function's return value
+            # so that it doesn't get evaluated as Markdown later.
+            body += squirrel(nuts, ret)
 
         elif tok.type == 'EVAL_OPEN':
+            # A ◊{foo} just evaluates foo.
             [exp] = combine_until_close(tokens)
             body += squirrel(nuts, eval(exp, env.__dict__))
 
         elif tok.type == 'WIKI_LINK':
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
             (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
-            if not label:
-                label = dest
-            body += squirrel(nuts,
-                             apply_func(env.wiki_link, (dest, label), env,
-                                        eval_args=False))
+            if not label: label = dest
+            ret = apply_func(env.wiki_link, (dest, label), env)
+            body += squirrel(nuts, ret)
 
         else:
             raise Exception('Unknown token returned by parser ' + tok.type)
@@ -205,16 +194,22 @@ def eval_page(text, env, raw=False, tight=False) -> str:
     return body
 
 
-def render_page(template, env):
-    return eval_page(template, env, raw=True)
-
-
 def render(env, page_filename, template_filename, out_filename):
     try:
-        env.__dict__.update(base_env())
-        read_page(page_filename, env)
-        template = read_file(template_filename)
-        out = render_page(template, env)
-        write_file(out_filename, out)
+        # Add the global dict to the context, to keep simple projects simple.
+        env.__dict__.update(sys.modules['__main__'].__dict__)
+
+        # Evaluate the page markup and put it in the context.
+        raw_text = Path(page_filename).read_text()
+        env.filename = page_filename.split('.')[0]
+        env.body = eval_page(raw_text, env)
+
+        # Evaluate the template in the completed context.
+        template = Path(template_filename).read_text()
+        out = eval_page(template, env, raw=True)
+
+        Path(out_filename).write_text(out)
+
     except SuppressPageGenerationException:
+        # The page can cancel its own production.
         pass
