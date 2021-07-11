@@ -24,12 +24,19 @@ def raw(f):
     return f
 
 
+def block(f):
+    f._appeldryck_block = True
+    return f
+
+
 def apply_func(fn, args, env):
     # TODO: What to do if meta variables get returned?
+    # Read function decorators.
+    raw = hasattr(fn, '_appeldryck_raw')
+    block = hasattr(fn, '_appeldryck_block')
+
     if not hasattr(fn, '_appeldryck_raw'):
-        parsed_args = [eval_page(arg, env,
-                                 tight=(not arg.startswith('\n')))
-                       for arg in args]
+        parsed_args = [eval_page(arg, env, tight=(not block)) for arg in args]
     else:
         parsed_args = args
     ret = fn(*parsed_args)
