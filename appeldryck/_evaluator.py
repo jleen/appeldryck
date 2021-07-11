@@ -29,14 +29,15 @@ def block(f):
     return f
 
 
-def apply_func(fn, args, env):
+def apply_func(fn, args, env, raw):
     # TODO: What to do if meta variables get returned?
     # Read function decorators.
-    raw = hasattr(fn, '_appeldryck_raw')
+    lazy = hasattr(fn, '_appeldryck_raw')
     block = hasattr(fn, '_appeldryck_block')
 
-    if not hasattr(fn, '_appeldryck_raw'):
-        parsed_args = [eval_page(arg, env, tight=(not block)) for arg in args]
+    if not lazy:
+        parsed_args = [eval_page(arg, env, tight=(not block), raw=raw)
+                       for arg in args]
     else:
         parsed_args = args
     ret = fn(*parsed_args)
@@ -80,7 +81,7 @@ class _DryckHtmlRenderer(marko.HTMLRenderer):
         body = self.render_children(heading)
         fn = getattr(self.env, 'heading', None)
         if fn:
-            return apply_func(fn, (heading.level, body), None)
+            return apply_func(fn, (heading.level, body), self.env, False)
         else:
             return f'<h{heading.level}>{body}</h{heading.level}>'
 
@@ -160,7 +161,7 @@ def eval_page(text, env, raw=False, tight=False):
             v = VAR_RE.match(tok.value).group(1)
             val = getattr(env, v)
             if callable(val):
-                body += squirrel(nuts, apply_func(val, (), env))
+                body += squirrel(nuts, apply_func(val, (), env, raw))
             else:
                 body += squirrel(nuts, val)
 
@@ -170,7 +171,7 @@ def eval_page(text, env, raw=False, tight=False):
             func_name = FUNC_RE.match(tok.value).group(1)
             fn = getattr(env, func_name)
             args = combine_until_close(tokens, multi=True)
-            ret = apply_func(fn, args, env)
+            ret = apply_func(fn, args, env, raw)
             # Squirrel the function's return value
             # so that it doesn't get evaluated as Markdown later.
             body += squirrel(nuts, ret)
@@ -184,7 +185,7 @@ def eval_page(text, env, raw=False, tight=False):
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
             (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
             if not label: label = dest
-            ret = apply_func(env.wiki_link, (dest, label), env)
+            ret = apply_func(env.wiki_link, (dest, label), env, raw)
             body += squirrel(nuts, ret)
 
         else:
