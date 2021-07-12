@@ -3,3 +3,6 @@ from ._evaluator import (
         raw,
         SuppressPageGenerationException,
         )
+from ._context import (
+        HtmlContext,
+        )
