@@ -202,22 +202,39 @@ def eval_page(text, env, raw=False, tight=False):
     return body
 
 
-def render(env, page_filename, template_filename, out_filename):
+def _render(env, filename, raw):
     try:
-        # Add the global dict to the context, to keep simple projects simple.
-        env.__dict__.update(sys.modules['__main__'].__dict__)
-
         # Evaluate the page markup and put it in the context.
-        raw_text = Path(page_filename).read_text()
-        env.filename = page_filename.split('.')[0]
-        env.body = eval_page(raw_text, env)
-
-        # Evaluate the template in the completed context.
-        template = Path(template_filename).read_text()
-        out = eval_page(template, env, raw=True)
-
-        Path(out_filename).write_text(out)
-
+        raw_text = Path(filename).read_text()
+        env.body = eval_page(raw_text, env, raw)
+        return env.body
     except SuppressPageGenerationException:
         # The page can cancel its own production.
-        pass
+        return None
+
+
+def markup(env, filename):
+    return _render(env, filename, False)
+
+
+def preprocess(env, filename):
+    return _render(env, filename, True)
+
+
+def render(env, page_filename, template_filename, out_filename):
+    # Add the global dict to the context, to keep simple projects simple.
+    env.__dict__.update(sys.modules['__main__'].__dict__)
+
+    # Add the page filename to the context.
+    env.filename = page_filename.split('.')[0]
+
+    if markup(env, page_filename) == None:
+        return
+
+    if not isinstance(template_filename, list):
+        template_filename = [template_filename]
+
+    for f in template_filename:
+        preprocess(env, f)
+
+    Path(out_filename).write_text(env.body)

@@ -1,9 +1,3 @@
-- Tightness is hokey.
-  - Just automatically tighten {} contents at the syntactic level?
-  - Attribute to specify tightness per-◊function
-  - And, while we're at it, attribute to specify lazy eval e.g. for ◊ifrefs
-- Turducken templates
-- Rawness from extension, not hardwired
 - Accept blank output from ◊functions
 - Maybe rewire context dict to return None instead of throwing for missing attributes
 - Error handling: catch and show markup line & col
