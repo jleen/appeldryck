@@ -179,7 +179,8 @@ def eval_page(text, env, raw=False, tight=False):
         elif tok.type == 'EVAL_OPEN':
             # A ◊{foo} just evaluates foo.
             [exp] = combine_until_close(tokens)
-            body += squirrel(nuts, eval(exp, env.__dict__))
+            body += squirrel(nuts, eval(exp, env.__dict__,
+                                        {'self': env}))
 
         elif tok.type == 'WIKI_LINK':
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
