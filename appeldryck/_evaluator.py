@@ -1,3 +1,4 @@
+import inspect
 import re
 import sys
 import uuid
@@ -179,8 +180,10 @@ def eval_page(text, env, raw=False, tight=False):
         elif tok.type == 'EVAL_OPEN':
             # A ◊{foo} just evaluates foo.
             [exp] = combine_until_close(tokens)
-            body += squirrel(nuts, eval(exp, env.__dict__,
-                                        {'self': env}))
+            methods = {x: getattr(env, x) for x in dir(env)
+                       if inspect.ismethod(getattr(env, x))}
+            methods['__context__'] = env
+            body += squirrel(nuts, eval(exp, env.__dict__, methods))
 
         elif tok.type == 'WIKI_LINK':
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
