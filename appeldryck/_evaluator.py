@@ -183,7 +183,7 @@ def eval_page(text, env, raw=False, tight=False):
             methods = {x: getattr(env, x) for x in dir(env)
                        if inspect.ismethod(getattr(env, x))}
             methods['__context__'] = env
-            body += squirrel(nuts, eval(exp, env.__dict__, methods))
+            body += squirrel(nuts, eval(exp.rstrip(), env.__dict__, methods))
 
         elif tok.type == 'WIKI_LINK':
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
