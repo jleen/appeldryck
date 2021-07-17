@@ -72,30 +72,115 @@ def combine_until_close(tokens, multi=False):
     return out
 
 
-class _DryckHtmlRenderer(marko.HTMLRenderer):
+class _DryckRenderer(marko.Renderer):
     '''Marko renderer to redirect tag rendering back to the user's functions.
 
     Should not be directly instantiated.
-    Please call make_DryckHtmlRenderer to curry the env.
+    Please call make_DryckRenderer to curry the env.
+
+    This is about half the logic from marko.HTMLRenderer.
+    The rest is in HtmlContext.
     '''
-    def render_heading(self, heading):
-        body = self.render_children(heading)
-        fn = getattr(self.env, 'heading', None)
-        if fn:
-            return apply_func(fn, (heading.level, body), self.env, False)
+
+    def apply_wrap(self, fn, element, *args, slot=0):
+        lazy = hasattr(fn, '_appeldryck_raw')
+        block = hasattr(fn, '_appeldryck_block')
+        if lazy:
+            raise Exception(f'Markdown handler {fn} cannot be lazy')
+        if block:
+            raise Exception(f'Markdown handler {fn} cannot be block')
+
+        if element:
+            children = self.render_children(element)
+            full_args = list(args)
+            full_args[slot:slot] = [children]
+            ret = fn(*full_args)
         else:
-            return f'<h{heading.level}>{body}</h{heading.level}>'
+            ret = fn(*args)
+
+        if not isinstance(ret, str):
+            raise Exception(f'Expected {fn} to return str, but got {ret}')
+        return ret
+
+    def render_heading(self, element):
+        return self.apply_wrap(self.env.heading,
+                               element, element.level, slot=1)
+
+    def render_paragraph(self, element):
+        if element._tight:
+            return self.render_children(element)
+        else:
+            return self.apply_wrap(self.env.p, element)
+
+    def render_list(self, element):
+        if element.ordered:
+            start = element.start if element.start != 1 else None
+            return self.apply_wrap(self.env.ol, element, start)
+        else:
+            return self.apply_wrap(self.env.ul, element)
+
+    def render_list_item(self, element):
+        return self.apply_wrap(self.env.li, element)
+
+    def render_quote(self, element):
+        return self.apply_wrap(self.env.blockquote, element)
+
+    def render_fenced_code(self, element):
+        raise Exception('Fenced code is not yet supported')
+
+    def render_code_block(self, element):
+        raise Exception('Code blocks are not yet supported')
+
+    def render_thematic_break(self, element):
+        return self.apply_wrap(self.env.hr, None)
+
+    def render_emphasis(self, element):
+        return self.apply_wrap(self.env.em, element)
+
+    def render_strong_emphasis(self, element):
+        return self.apply_wrap(self.env.strong, element)
+
+    def render_html_block(self, element):
+        raise Exception("Literal HTML doesn't seem like a good idea")
+
+    def render_blank_line(self, element):
+        return ''
+
+    def render_link_ref_def(self, element):
+        return ''
+
+    def render_link(self, element):
+        return self.apply_wrap(self.env.href,
+                               element, element.dest, element.title, slot=1)
+
+    def render_auto_link(self, element):
+        return self.render_link(element)
+
+    def render_image(self, element):
+        raise Exception('Images are not yet supported')
+
+    def render_raw_text(self, element):
+        return self.env.escape(element.children)
+
+    def render_line_break(self, element):
+        if element.soft:
+            return '\n'
+        else:
+            return self.apply_wrap(self.env.br, None)
+
+    def render_code_span(self, element):
+        raise Exception('Code spans are not yet supported')
 
 
-def make_DryckHtmlRenderer(the_env):
-    class DryckHtmlRenderer(_DryckHtmlRenderer):
+def make_DryckRenderer(the_env):
+    class DryckRenderer(_DryckRenderer):
         env = the_env
-    return DryckHtmlRenderer
+    return DryckRenderer
 
 
 def eval_text(env, text, tight):
     # TODO: Unsquirrel before calling tag functions?
-    renderer = make_DryckHtmlRenderer(env)
+    renderer = make_DryckRenderer(env)
     markdown = marko.Markdown(renderer=renderer)
     parsed = markdown.parse(text)
     if tight:
