@@ -79,34 +79,32 @@ class LaTeXContext(Context):
 
     def ol(self, body, start=None):
         # TODO: start_attr = start if start != None else ''
-        return f'<ol{start_attr}>\n{body}</ol>\n'
+        return '\\begin{enumerate}\n' + body + '\n\\end{enumerate}\n'
 
     def ul(self, body):
-        return tag('ul', body)
+        return '\\begin{itemize}\n' + body + '\n\\end{itemize}\n'
 
     def li(self, body):
-        return tag('li', body)
+        return f'\\item {body}\n'
 
     def blockquote(self, body):
-        return tag('blockquote', body, block=True)
+        return '\\begin{blockquote}\n' + body + '\n\\end{blockquote}\n'
 
     def hr(self):
-        return '<hr />\n'
+        raise Exception('hr not implemented')
 
     def em(self, body):
-        return tag('em', body)
+        return '{\\it ' + body + '}'
 
     def strong(self, body):
-        return tag('strong', body)
+        return '{\\bf ' + body + '}'
 
     def href(self, target, body, title):
-        title_attr = f' title="{escape(self.title)}"' if title else ''
-        escaped_target = html.escape(quote(html.unescape(target),
-                                           safe='/#:()*?=%@+,&'))
-        return f'<a href="{escaped_target}"{title_attr}>{body}</a>'
+        raise Exception('href not implemented')
 
     def br(self):
-        return '<br />\n'
+        return '\n\n'
 
     def escape(self, text):
-        return html.escape(html.unescape(text)).replace("&#x27;", "'")
+        # TODO
+        return text.replace('#', '\\#').replace('&', '\\&')

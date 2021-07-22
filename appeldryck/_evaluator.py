@@ -218,7 +218,7 @@ def eval_page(text, env, raw=False, tight=False):
 
         elif tok.type == 'BRACE_OPEN':
             [inner] = combine_until_close(tokens)
-            body += '{' + inner + '}'
+            body += '{' + eval_page(inner, env, raw, tight) + '}'
 
         elif tok.type == 'BRACE_CLOSE' or tok.type == 'BRACE_CLOSE_OPEN':
             # Just in case we get a mismatched close paren. Harmless.
@@ -314,11 +314,12 @@ def render(env, page_filename, template_filename, out_filename):
     # Add the global dict to the context, to keep simple projects simple.
     env.__dict__.update(sys.modules['__main__'].__dict__)
 
-    # Add the page filename to the context.
-    env.filename = page_filename.split('.')[0]
+    if page_filename:
+        # Add the page filename to the context.
+        env.filename = page_filename.split('.')[0]
 
-    if markup(env, page_filename) == None:
-        return
+        if markup(env, page_filename) == None:
+            return
 
     if not isinstance(template_filename, list):
         template_filename = [template_filename]
