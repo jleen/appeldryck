@@ -11,9 +11,10 @@ class Context:
         raise evaluator.SuppressPageGenerationException()
 
 
-def tag(name, body, block=False):
+def tag(name, body, block=False, inline=False):
     brk = '\n' if block else ''
-    return f'<{name}>{brk}{body}</{name}>\n'
+    line = '\n' if not inline else ''
+    return f'<{name}>{brk}{body}</{name}>{line}'
 
 
 class HtmlContext(Context):
@@ -48,10 +49,10 @@ class HtmlContext(Context):
         return '<hr />\n'
 
     def em(self, body):
-        return tag('em', body)
+        return tag('em', body, inline=True)
 
     def strong(self, body):
-        return tag('strong', body)
+        return tag('strong', body, inline=True)
 
     def href(self, target, body, title):
         title_attr = f' title="{escape(self.title)}"' if title else ''
