@@ -1,4 +1,5 @@
 import inspect
+import os
 import re
 import sys
 import uuid
@@ -268,7 +269,10 @@ def eval_page(text, env, raw=False, tight=False):
             methods = {x: getattr(env, x) for x in dir(env)
                        if inspect.ismethod(getattr(env, x))}
             methods['__context__'] = env
-            body += squirrel(nuts, eval(exp.rstrip(), env.__dict__, methods))
+            ret = eval(exp.rstrip(), env.__dict__, methods)
+            if not isinstance(ret, str):
+                raise Exception(f'Expected eval to return str, but got {ret}')
+            body += squirrel(nuts, ret)
 
         elif tok.type == 'WIKI_LINK':
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
@@ -316,7 +320,7 @@ def render(env, page_filename, template_filename, out_filename):
 
     if page_filename:
         # Add the page filename to the context.
-        env.filename = page_filename.split('.')[0]
+        env.filename = os.path.splitext(page_filename)[0]
 
         if markup(env, page_filename) == None:
             return
