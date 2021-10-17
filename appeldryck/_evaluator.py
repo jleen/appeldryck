@@ -331,4 +331,5 @@ def render(env, page_filename, template_filename, out_filename):
     for f in template_filename:
         preprocess(env, f)
 
-    Path(out_filename).write_text(env.body)
+    if out_filename:
+        Path(out_filename).write_text(env.body)
