@@ -29,7 +29,7 @@ class Lexer():
 
 
     def t_WIKI_LINK(self, t):
-        r'\[\[[^]]*\]\]'
+        r'\[\[.*?\]\](?!])'
         return t
 
 
