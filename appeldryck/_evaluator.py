@@ -285,6 +285,8 @@ def eval_page(text, env, raw=False, tight=False):
             raise Exception('Unknown token returned by parser ' + tok.type)
 
     # Evaluate Markdown while ◊'s are still squirreled.
+    # This is the only thing that 'raw' actually affects.
+    # (It's unrelated to the @raw annotation, sigh.)
     if not raw:
         body = eval_text(env, body, tight)
 

@@ -4,8 +4,8 @@ from . import _evaluator as evaluator
 
 
 class Context:
-    def eval(self, markup, raw=False):
-        return evaluator.eval_page(markup, self, raw=raw)
+    def eval(self, markup, raw=False, tight=False):
+        return evaluator.eval_page(markup, self, raw=raw, tight=tight)
 
     def suppress(self):
         raise evaluator.SuppressPageGenerationException()
