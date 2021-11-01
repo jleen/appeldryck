@@ -70,26 +70,28 @@ class HtmlContext(Context):
 class LaTeXContext(Context):
     '''Base Appeldryck context for LaTeX output.'''
 
-    # TODO: May need to keep state for hard TeX linebreaks?!
+    # The convention is that each emitted block element should assume
+    # that it has been given a fresh line to begin on, and it should
+    # provide such for its following block element.
 
     def heading(self, level, body):
-        return '\n\\section{' + body + '}\n\n'
+        return '\\section{' + body + '}\n\n'
 
     def p(self, body):
-        return f'\n\n{body}\n\n'
+        return f'{body}\n\n'
 
     def ol(self, body, start=None):
         # TODO: start_attr = start if start != None else ''
-        return '\\begin{enumerate}\n' + body + '\n\\end{enumerate}\n'
+        return '\\begin{enumerate}\n' + body + '\\end{enumerate}\n\n'
 
     def ul(self, body):
-        return '\\begin{itemize}\n' + body + '\n\\end{itemize}\n'
+        return '\\begin{itemize}\n' + body + '\\end{itemize}\n\n'
 
     def li(self, body):
         return f'\\item {body}\n'
 
     def blockquote(self, body):
-        return '\\begin{blockquote}\n' + body + '\n\\end{blockquote}\n'
+        return '\\begin{blockquote}\n' + body + '\\end{blockquote}\n\n'
 
     def hr(self):
         raise Exception('hr not implemented')
@@ -104,7 +106,8 @@ class LaTeXContext(Context):
         raise Exception('href not implemented')
 
     def br(self):
-        return '\n\n'
+        # Emit a \\ at the end of the line, to perform a hard TeX linebreak.
+        return '\\\\\n'
 
     def escape(self, text):
         # TODO
@@ -113,4 +116,5 @@ class LaTeXContext(Context):
         text = text.replace('_', '\\_')
         text = text.replace('^', '\\^')
         text = text.replace('%', '\\%')
+        text = text.replace('~', '\\char`\\~')
         return text
