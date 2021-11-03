@@ -316,7 +316,7 @@ def preprocess(env, filename):
     return _render(env, filename, True)
 
 
-def render(env, page_filename, template_filename, out_filename):
+def render(env, page_filename, template_filename, out_filename=None):
     # Add the global dict to the context, to keep simple projects simple.
     env.__dict__.update(sys.modules['__main__'].__dict__)
 
@@ -335,3 +335,5 @@ def render(env, page_filename, template_filename, out_filename):
 
     if out_filename:
         Path(out_filename).write_text(env.body)
+
+    return env.body
