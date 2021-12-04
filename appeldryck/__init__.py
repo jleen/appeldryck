@@ -1,5 +1,6 @@
 from ._evaluator import (
         render,
+        preprocess,
         raw,
         SuppressPageGenerationException,
         )
