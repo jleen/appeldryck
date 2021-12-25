@@ -110,11 +110,10 @@ class LaTeXContext(Context):
         return '\\\\\n'
 
     def escape(self, text):
-        # TODO
-        text = text.replace('#', '\\#')
-        text = text.replace('&', '\\&')
-        text = text.replace('_', '\\_')
-        text = text.replace('^', '\\^')
-        text = text.replace('%', '\\%')
-        text = text.replace('~', '\\char`\\~')
+        text = text.replace('#', r'\#')
+        text = text.replace('&', r'\&')
+        text = text.replace('_', r'\_')
+        text = text.replace('^', r'\^')
+        text = text.replace('%', r'\%')
+        text = text.replace('~', r'\char`\~')
         return text
