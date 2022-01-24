@@ -115,5 +115,6 @@ class LaTeXContext(Context):
         text = text.replace('_', r'\_')
         text = text.replace('^', r'\^')
         text = text.replace('%', r'\%')
+        text = text.replace('$', '\\$')
         text = text.replace('~', r'\char`\~')
         return text
