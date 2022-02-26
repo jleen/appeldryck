@@ -1,4 +1,5 @@
 import html
+import os
 
 from . import _evaluator as evaluator
 
@@ -118,3 +119,18 @@ class LaTeXContext(Context):
         text = text.replace('$', '\\$')
         text = text.replace('~', r'\char`\~')
         return text
+
+
+def templates(sources):
+    '''A decorator to specify that a context exposes the named template files
+    as functions.'''
+    def decorator(clazz):
+        for source in sources:
+            def create_run_template(source):
+                def run_template(self):
+                    return evaluator.render(self, source)
+                return run_template
+            name = os.path.basename(source).split('.')[0]
+            setattr(clazz, name, create_run_template(source))
+        return clazz
+    return decorator

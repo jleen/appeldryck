@@ -7,4 +7,5 @@ from ._evaluator import (
 from ._context import (
         HtmlContext,
         LaTeXContext,
+        templates
         )
