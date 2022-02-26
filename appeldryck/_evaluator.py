@@ -144,6 +144,9 @@ class _DryckRenderer(marko.Renderer):
     def render_html_block(self, element):
         raise Exception("Literal HTML doesn't seem like a good idea")
 
+    def render_inline_html(self, element):
+        raise Exception("Inline HTML doesn't seem like a good idea")
+
     def render_blank_line(self, element):
         return ''
 
@@ -316,7 +319,7 @@ def preprocess(env, filename):
     return _render(env, filename, True)
 
 
-def render(env, page_filename, template_filename, out_filename=None):
+def render(env, page_filename, template_filename=[], out_filename=None):
     # Add the global dict to the context, to keep simple projects simple.
     env.__dict__.update(sys.modules['__main__'].__dict__)
 
