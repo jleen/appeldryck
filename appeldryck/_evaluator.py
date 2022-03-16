@@ -15,6 +15,7 @@ class SuppressPageGenerationException(Exception):
     pass
 
 
+# These need to be kept in sync with _parser.py, sigh.
 VAR_RE  = re.compile(r'◊(.+)')
 META_RE = re.compile(r'◊(.+?):\s*(.*)')
 FUNC_RE = re.compile(r'◊(.+?){')
@@ -22,27 +23,46 @@ WIKI_RE = re.compile(r'\[\[(.+?)(\|(.*))?]]')
 
 
 def raw(f):
+    """Decorator for a dryck function that should receive the raw (unevaluated)
+    text of its argument. By default, arguments are evaluated before the
+    function is applied."""
     f._appeldryck_raw = True
     return f
 
 
 def block(f):
+    """Decorator for a dryck function that should have its argument evaluated
+    in block context instead of the default span context."""
     f._appeldryck_block = True
     return f
 
 
-def apply_func(fn, args, env, raw):
+def indented(f):
+    """Decorator for a dryck function with an implicit first parameter that
+    receives the indentation text to prefix to each of its output lines."""
+    f._appeldryck_indented = True
+    return f
+
+
+def apply_func(fn, args, env, raw, indent):
     # TODO: What to do if meta variables get returned?
     # Read function decorators.
     lazy = hasattr(fn, '_appeldryck_raw')
     block = hasattr(fn, '_appeldryck_block')
+    indented = hasattr(fn, '_appeldryck_indented')
 
     if not lazy:
         parsed_args = [eval_page(arg, env, tight=(not block), raw=raw)
                        for arg in args]
     else:
         parsed_args = args
+
     ret = fn(*parsed_args)
+
+    # TODO: Don't emit trailing whitespace!
+    if indented:
+        ret = ret.replace('\n', '\n' + indent)
+
     if not isinstance(ret, str):
         raise Exception(f'Expected {fn} to return str, but got {ret}')
     return ret
@@ -249,9 +269,10 @@ def eval_page(text, env, raw=False, tight=False):
             # A plain ◊foo with no args
             # can be either a variable or a nullary function call
             v = VAR_RE.match(tok.value).group(1)
+            indent = get_indent(text, tok)
             val = getattr(env, v)
             if callable(val):
-                body += squirrel(nuts, apply_func(val, (), env, raw))
+                body += squirrel(nuts, apply_func(val, (), env, raw, indent))
             else:
                 body += squirrel(nuts, val)
 
@@ -259,9 +280,10 @@ def eval_page(text, env, raw=False, tight=False):
             # A ◊foo followed by one or more {expr}'s
             # is a function call with arguments.
             func_name = FUNC_RE.match(tok.value).group(1)
+            indent = get_indent(text, tok)
             fn = getattr(env, func_name)
             args = combine_until_close(tokens, multi=True)
-            ret = apply_func(fn, args, env, raw)
+            ret = apply_func(fn, args, env, raw, indent)
             # Squirrel the function's return value
             # so that it doesn't get evaluated as Markdown later.
             body += squirrel(nuts, ret)
@@ -281,7 +303,7 @@ def eval_page(text, env, raw=False, tight=False):
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
             (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
             if not label: label = dest
-            ret = apply_func(env.wiki_link, (dest, label), env, raw)
+            ret = apply_func(env.wiki_link, (dest, label), env, raw, indent)
             body += squirrel(nuts, ret)
 
         else:
@@ -298,6 +320,15 @@ def eval_page(text, env, raw=False, tight=False):
         body = body.replace(k, v)
 
     return body
+
+
+WHITESPACE_RE = re.compile(r'[\t ]*')
+
+# Based upon find_column from https://ply.readthedocs.io/en/latest/ply.html
+def get_indent(text, tok):
+    line_start = text.rfind('\n', 0, tok.lexpos) + 1
+    candidate = text[line_start:tok.lexpos]
+    return candidate if WHITESPACE_RE.match(candidate) else ''
 
 
 def _render(env, filename, raw):
