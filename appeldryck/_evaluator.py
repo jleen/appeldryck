@@ -61,7 +61,7 @@ def apply_func(fn, args, env, raw, indent):
 
     # TODO: Don't emit trailing whitespace!
     if indented:
-        if ret[-1] == '\n':
+        if len(ret) > 0 and ret[-1] == '\n':
             ret = ret[:-1]
         ret = ret.replace('\n', '\n' + indent)
 
