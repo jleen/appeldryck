@@ -3,6 +3,8 @@ from ._evaluator import (
         preprocess,
         raw,
         indented,
+        block,
+        pyargs,
         SuppressPageGenerationException,
         )
 from ._context import (

@@ -44,14 +44,33 @@ def indented(f):
     return f
 
 
-def apply_func(fn, args, env, raw, indent):
-    # TODO: What to do if meta variables get returned?
-    # Read function decorators.
+def pyargs(f):
+    """Decorator for a dryck function that takes Python expressions instead
+    of text as its arguments."""
+    f._appeldryck_pyargs = True
+    return f
+
+
+def get_func_props(fn):
     lazy = hasattr(fn, '_appeldryck_raw')
     block = hasattr(fn, '_appeldryck_block')
     indented = hasattr(fn, '_appeldryck_indented')
+    pyargs = hasattr(fn, '_appeldryck_pyargs')
+    return (lazy, block, indented, pyargs)
 
-    if not lazy:
+
+def apply_func(fn, args, env, raw, indent):
+    # TODO: What to do if meta variables get returned?
+    # Read function decorators.
+    (lazy, block, indented, pyargs) = get_func_props(fn)
+
+    if pyargs and lazy:
+        raise Exception(f'Dryck function {fn} cannot be both pyargs and lazy')
+
+    if pyargs:
+        parsed_args = [eval(arg, env.__dict__)
+                       for arg in args]
+    elif not lazy:
         parsed_args = [eval_page(arg, env, tight=(not block), raw=raw)
                        for arg in args]
     else:
@@ -106,8 +125,7 @@ class _DryckRenderer(marko.Renderer):
     '''
 
     def apply_wrap(self, fn, element, *args, slot=0):
-        lazy = hasattr(fn, '_appeldryck_raw')
-        block = hasattr(fn, '_appeldryck_block')
+        (lazy, block, _, _) = get_func_props(fn)
         if lazy:
             raise Exception(f'Markdown handler {fn} cannot be lazy')
         if block:
@@ -208,10 +226,14 @@ def eval_text(env, text, tight):
     # TODO: Unsquirrel before calling tag functions?
     renderer = make_DryckRenderer(env)
     markdown = marko.Markdown(renderer=renderer)
+    print('parsing:')
+    print(text)
     parsed = markdown.parse(text)
     if tight:
         for child in parsed.children:
             child._tight = True
+    print('parsed:')
+    print(markdown.render(parsed))
     return markdown.render(parsed)
 
 
@@ -269,12 +291,17 @@ def eval_page(text, env, raw=False, tight=False):
 
         elif tok.type == 'VAR':
             # A plain ◊foo with no args
-            # can be either a variable or a nullary function call
+            # can be either a variable or a nullary function call.
             v = VAR_RE.match(tok.value).group(1)
             indent = get_indent(text, tok)
             val = getattr(env, v)
             if callable(val):
-                body += squirrel(nuts, apply_func(val, (), env, raw, indent))
+                ret = apply_func(val, (), env, raw, indent)
+                # HACK HACK HACK
+                (_, block, _, _) = get_func_props(val)
+                if block:
+                    body += '{!}BLOCK'
+                body += squirrel(nuts, ret)
             else:
                 body += squirrel(nuts, val)
 
@@ -286,6 +313,10 @@ def eval_page(text, env, raw=False, tight=False):
             fn = getattr(env, func_name)
             args = combine_until_close(tokens, multi=True)
             ret = apply_func(fn, args, env, raw, indent)
+            # HACK HACK HACK
+            (_, block, _, _) = get_func_props(fn)
+            if block:
+                body += '{!}BLOCK'
             # Squirrel the function's return value
             # so that it doesn't get evaluated as Markdown later.
             body += squirrel(nuts, ret)
@@ -319,6 +350,8 @@ def eval_page(text, env, raw=False, tight=False):
 
     # Substitute the evaluated ◊'s for the squirreled placeholders.
     for k, v in nuts.items():
+        # HACK HACK HACK
+        body = body.replace('<p>{!}BLOCK' + k + '</p>', v)
         body = body.replace(k, v)
 
     return body
