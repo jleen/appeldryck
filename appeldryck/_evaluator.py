@@ -226,14 +226,10 @@ def eval_text(env, text, tight):
     # TODO: Unsquirrel before calling tag functions?
     renderer = make_DryckRenderer(env)
     markdown = marko.Markdown(renderer=renderer)
-    print('parsing:')
-    print(text)
     parsed = markdown.parse(text)
     if tight:
         for child in parsed.children:
             child._tight = True
-    print('parsed:')
-    print(markdown.render(parsed))
     return markdown.render(parsed)
 
 
