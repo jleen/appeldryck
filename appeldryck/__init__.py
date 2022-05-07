@@ -8,6 +8,7 @@ from ._evaluator import (
         SuppressPageGenerationException,
         )
 from ._context import (
+        Context,
         HtmlContext,
         LaTeXContext,
         templates
