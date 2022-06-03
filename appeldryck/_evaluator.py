@@ -332,6 +332,7 @@ def eval_page(text, env, raw=False, tight=False):
             # [[link|label]] serves as a syntactic sugar for calling ◊link.
             (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
             if not label: label = dest
+            indent = get_indent(text, tok)
             ret = apply_func(env.wiki_link, (dest, label), env, raw, indent)
             body += squirrel(nuts, ret)
 
