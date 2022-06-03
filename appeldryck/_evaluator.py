@@ -1,10 +1,6 @@
 import inspect
-import os
 import re
-import sys
 import uuid
-
-from pathlib import Path
 
 import marko
 
@@ -38,8 +34,8 @@ def block(f):
 
 
 def indented(f):
-    """Decorator for a dryck function with an implicit first parameter that
-    receives the indentation text to prefix to each of its output lines."""
+    """Decorator for a dryck function whose output should be automatically
+    indented to match the indent at which the function call appeared."""
     f._dryck_indented = True
     return f
 
@@ -364,45 +360,3 @@ def get_indent(text, tok):
     line_start = text.rfind('\n', 0, tok.lexpos) + 1
     candidate = text[line_start:tok.lexpos]
     return candidate if WHITESPACE_RE.match(candidate) else ''
-
-
-def _render(env, filename, raw):
-    try:
-        # Evaluate the page markup and put it in the context.
-        raw_text = Path(filename).read_text()
-        env.body = eval_page(raw_text, env, raw)
-        return env.body
-    except SuppressPageGenerationException:
-        # The page can cancel its own production.
-        return None
-
-
-def markup(env, filename):
-    return _render(env, filename, False)
-
-
-def preprocess(env, filename):
-    return _render(env, filename, True)
-
-
-def render(env, page_filename, template_filename=[], out_filename=None):
-    # Add the global dict to the context, to keep simple projects simple.
-    env.__dict__.update(sys.modules['__main__'].__dict__)
-
-    if page_filename:
-        # Add the page filename to the context.
-        env.filename = os.path.splitext(page_filename)[0]
-
-        if markup(env, page_filename) == None:
-            return
-
-    if not isinstance(template_filename, list):
-        template_filename = [template_filename]
-
-    for f in template_filename:
-        preprocess(env, f)
-
-    if out_filename:
-        Path(out_filename).write_text(env.body)
-
-    return env.body
