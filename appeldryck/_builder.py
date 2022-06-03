@@ -33,7 +33,7 @@ def drick(src, output_dir, transform, ext):
     print('Drack ' + dest)
 
 
-def appeldryck():
+def build():
     dryckfile = ConfigParser()
     dryckfile.read('Dryckfile')
 
@@ -62,7 +62,7 @@ def dsr(drycker):
         ext = dryck.get('ext', None)
         observer.schedule(Dricker(transform, dest, ext), dryck)
 
-    print('Appeldricker...')
+    print('Dricker...')
     observer.start()
 
     try:

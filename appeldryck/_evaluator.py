@@ -26,36 +26,36 @@ def raw(f):
     """Decorator for a dryck function that should receive the raw (unevaluated)
     text of its argument. By default, arguments are evaluated before the
     function is applied."""
-    f._appeldryck_raw = True
+    f._dryck_raw = True
     return f
 
 
 def block(f):
     """Decorator for a dryck function that should have its argument evaluated
     in block context instead of the default span context."""
-    f._appeldryck_block = True
+    f._dryck_block = True
     return f
 
 
 def indented(f):
     """Decorator for a dryck function with an implicit first parameter that
     receives the indentation text to prefix to each of its output lines."""
-    f._appeldryck_indented = True
+    f._dryck_indented = True
     return f
 
 
 def pyargs(f):
     """Decorator for a dryck function that takes Python expressions instead
     of text as its arguments."""
-    f._appeldryck_pyargs = True
+    f._dryck_pyargs = True
     return f
 
 
 def get_func_props(fn):
-    lazy = hasattr(fn, '_appeldryck_raw')
-    block = hasattr(fn, '_appeldryck_block')
-    indented = hasattr(fn, '_appeldryck_indented')
-    pyargs = hasattr(fn, '_appeldryck_pyargs')
+    lazy = hasattr(fn, '_dryck_raw')
+    block = hasattr(fn, '_dryck_block')
+    indented = hasattr(fn, '_dryck_indented')
+    pyargs = hasattr(fn, '_dryck_pyargs')
     return (lazy, block, indented, pyargs)
 
 

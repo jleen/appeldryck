@@ -19,7 +19,7 @@ def tag(name, body, block=False, inline=False):
 
 
 class HtmlContext(Context):
-    '''Base Appeldryck context for HTML output.
+    '''Base dryck context for HTML output.
 
     Defines rendering for basic markdown tags that any dryck will need.
 
@@ -56,8 +56,8 @@ class HtmlContext(Context):
         return tag('strong', body, inline=True)
 
     def href(self, target, body, title):
-        title_attr = f' title="{escape(self.title)}"' if title else ''
-        escaped_target = html.escape(quote(html.unescape(target),
+        title_attr = f' title="{self.escape(self.title)}"' if title else ''
+        escaped_target = html.escape(self.quote(html.unescape(target),
                                            safe='/#:()*?=%@+,&'))
         return f'<a href="{escaped_target}"{title_attr}>{body}</a>'
 
@@ -69,7 +69,7 @@ class HtmlContext(Context):
 
 
 class LaTeXContext(Context):
-    '''Base Appeldryck context for LaTeX output.'''
+    '''Base dryck context for LaTeX output.'''
 
     # The convention is that each emitted block element should assume
     # that it has been given a fresh line to begin on, and it should
