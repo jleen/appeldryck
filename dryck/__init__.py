@@ -13,5 +13,6 @@ from ._context import (
         Context,
         HtmlContext,
         LaTeXContext,
-        templates
+        templates,
+        tag
         )
