@@ -67,8 +67,8 @@ def apply_func(fn, args, env, raw, indent):
         parsed_args = [eval(arg, env.__dict__)
                        for arg in args]
     elif not lazy:
-        parsed_args = [eval_page(arg, env, tight=(not block), raw=raw)
-                       for arg in args]
+        parsed_args = [eval_page(arg, env, tight=(not block), raw=raw, name=f'arg {i+1} of {fn.__name__}')
+                       for (i, arg) in enumerate(args)]
     else:
         parsed_args = args
 
@@ -237,7 +237,7 @@ def squirrel(nuts, nut):
     return k
 
 
-def eval_page(text, env, raw=False, tight=False):
+def eval_page(text, env, raw=False, tight=False, name=None):
     body = ''
     nuts = {}
 
@@ -249,91 +249,95 @@ def eval_page(text, env, raw=False, tight=False):
         except StopIteration:
             break
 
-        # Plain old text.
-        # These tokens just get passed through to the next parsing layer,
-        # which is the Markdown parser.
+        try:
+            # Plain old text.
+            # These tokens just get passed through to the next parsing layer,
+            # which is the Markdown parser.
 
-        if tok.type == 'TEXT':
-            body += tok.value
+            if tok.type == 'TEXT':
+                body += tok.value
 
-        elif tok.type == 'BRACE_OPEN':
-            [inner] = combine_until_close(tokens)
-            body += '{' + eval_page(inner, env, raw, tight) + '}'
+            elif tok.type == 'BRACE_OPEN':
+                [inner] = combine_until_close(tokens)
+                body += '{' + eval_page(inner, env, raw, tight) + '}'
 
-        elif tok.type == 'BRACE_CLOSE' or tok.type == 'BRACE_CLOSE_OPEN':
-            # Just in case we get a mismatched close paren. Harmless.
-            body += tok.value
+            elif tok.type == 'BRACE_CLOSE' or tok.type == 'BRACE_CLOSE_OPEN':
+                # Just in case we get a mismatched close paren. Harmless.
+                body += tok.value
 
-        # State manipulators.
-        # These don't directly affect the final markup.
-        # They put stuff into the environment.
+            # State manipulators.
+            # These don't directly affect the final markup.
+            # They put stuff into the environment.
 
-        elif tok.type == 'META':
-            (k, v) = META_RE.match(tok.value).group(1, 2)
-            setattr(env, k, v)
+            elif tok.type == 'META':
+                (k, v) = META_RE.match(tok.value).group(1, 2)
+                setattr(env, k, v)
 
-        # Evaluated expressions.
-        # These are evaluated in the order seen
-        # (except for expressions within function arguments,
-        # which are evaluated before application, in the usual way,
-        # inside of apply_func).
-        # Return values are considered final markup, *not* program code,
-        # and thus are squirreled
-        # so the Markdown parser doesn't evaluate them.
+            # Evaluated expressions.
+            # These are evaluated in the order seen
+            # (except for expressions within function arguments,
+            # which are evaluated before application, in the usual way,
+            # inside of apply_func).
+            # Return values are considered final markup, *not* program code,
+            # and thus are squirreled
+            # so the Markdown parser doesn't evaluate them.
 
-        elif tok.type == 'VAR':
-            # A plain ◊foo with no args
-            # can be either a variable or a nullary function call.
-            v = VAR_RE.match(tok.value).group(1)
-            indent = get_indent(text, tok)
-            val = getattr(env, v)
-            if callable(val):
-                ret = apply_func(val, (), env, raw, indent)
+            elif tok.type == 'VAR':
+                # A plain ◊foo with no args
+                # can be either a variable or a nullary function call.
+                v = VAR_RE.match(tok.value).group(1)
+                indent = get_indent(text, tok)
+                val = getattr(env, v)
+                if callable(val):
+                    ret = apply_func(val, (), env, raw, indent)
+                    # HACK HACK HACK
+                    (_, block, _, _) = get_func_props(val)
+                    if block:
+                        body += '{!}BLOCK'
+                    body += squirrel(nuts, ret)
+                else:
+                    body += squirrel(nuts, val)
+
+            elif tok.type == 'FUNC_OPEN':
+                # A ◊foo followed by one or more {expr}'s
+                # is a function call with arguments.
+                func_name = FUNC_RE.match(tok.value).group(1)
+                indent = get_indent(text, tok)
+                fn = getattr(env, func_name)
+                args = combine_until_close(tokens, multi=True)
+                ret = apply_func(fn, args, env, raw, indent)
                 # HACK HACK HACK
-                (_, block, _, _) = get_func_props(val)
+                (_, block, _, _) = get_func_props(fn)
                 if block:
                     body += '{!}BLOCK'
+                # Squirrel the function's return value
+                # so that it doesn't get evaluated as Markdown later.
                 body += squirrel(nuts, ret)
+
+            elif tok.type == 'EVAL_OPEN':
+                # A ◊{foo} just evaluates foo.
+                [exp] = combine_until_close(tokens)
+                methods = {x: getattr(env, x) for x in dir(env)
+                        if inspect.ismethod(getattr(env, x))}
+                methods['__context__'] = env
+                ret = eval(exp.rstrip(), env.__dict__, methods)
+                if not isinstance(ret, str):
+                    raise Exception(f'Expected eval to return str, but got {ret}')
+                body += squirrel(nuts, ret)
+
+            elif tok.type == 'WIKI_LINK':
+                # [[link|label]] serves as a syntactic sugar for calling ◊link.
+                (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
+                if not label: label = dest
+                indent = get_indent(text, tok)
+                ret = apply_func(env.wiki_link, (dest, label), env, raw, indent)
+                body += squirrel(nuts, ret)
+
             else:
-                body += squirrel(nuts, val)
-
-        elif tok.type == 'FUNC_OPEN':
-            # A ◊foo followed by one or more {expr}'s
-            # is a function call with arguments.
-            func_name = FUNC_RE.match(tok.value).group(1)
-            indent = get_indent(text, tok)
-            fn = getattr(env, func_name)
-            args = combine_until_close(tokens, multi=True)
-            ret = apply_func(fn, args, env, raw, indent)
-            # HACK HACK HACK
-            (_, block, _, _) = get_func_props(fn)
-            if block:
-                body += '{!}BLOCK'
-            # Squirrel the function's return value
-            # so that it doesn't get evaluated as Markdown later.
-            body += squirrel(nuts, ret)
-
-        elif tok.type == 'EVAL_OPEN':
-            # A ◊{foo} just evaluates foo.
-            [exp] = combine_until_close(tokens)
-            methods = {x: getattr(env, x) for x in dir(env)
-                       if inspect.ismethod(getattr(env, x))}
-            methods['__context__'] = env
-            ret = eval(exp.rstrip(), env.__dict__, methods)
-            if not isinstance(ret, str):
-                raise Exception(f'Expected eval to return str, but got {ret}')
-            body += squirrel(nuts, ret)
-
-        elif tok.type == 'WIKI_LINK':
-            # [[link|label]] serves as a syntactic sugar for calling ◊link.
-            (dest, label) = WIKI_RE.match(tok.value).group(1, 3)
-            if not label: label = dest
-            indent = get_indent(text, tok)
-            ret = apply_func(env.wiki_link, (dest, label), env, raw, indent)
-            body += squirrel(nuts, ret)
-
-        else:
-            raise Exception('Unknown token returned by parser ' + tok.type)
+                raise Exception('Unknown token returned by parser ' + tok.type)
+        except Exception as e:
+            raise Exception(f'Error on line {tok.lineno} col {parser.find_column(text, tok)}' +
+                            f' of {name}' if name else '') from e
 
     # Evaluate Markdown while ◊'s are still squirreled.
     # This is the only thing that 'raw' actually affects.

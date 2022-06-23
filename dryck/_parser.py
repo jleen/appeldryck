@@ -1,5 +1,18 @@
 from ply import lex
 
+# TODO: This almost certainly isn't quite right.
+# We probably misreport an error early in the block
+# at the line number of the end of the block.
+def track_lines(t):
+    t.lexer.lineno += t.value.count('\n')
+
+
+# From https://ply.readthedocs.io/en/latest/ply.html#error-handling 
+def find_column(input, token):
+    line_start = input.rfind('\n', 0, token.lexpos) + 1
+    return (token.lexpos - line_start) + 1
+    
+
 class Lexer():
     # TODO
     tokens = ('FUNC_OPEN',
@@ -20,6 +33,7 @@ class Lexer():
 
     def t_META(self, t):
         r'◊\w+\s*:\s*.*\n'
+        track_lines(t)
         return t
 
 
@@ -40,6 +54,7 @@ class Lexer():
 
     def t_BRACE_CLOSE_OPEN(self, t):
         r'}(\n\s*)?{'
+        track_lines(t)
         return t
 
 
@@ -55,6 +70,7 @@ class Lexer():
 
     def t_TEXT(self, t):
         r'(\[?[^[◊{}]|\n)+'
+        track_lines(t)
         return t
 
 

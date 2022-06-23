@@ -9,7 +9,7 @@ def _render(env, filename, raw):
     try:
         # Evaluate the page markup and put it in the context.
         raw_text = Path(filename).read_text()
-        env.body = evaluator.eval_page(raw_text, env, raw)
+        env.body = evaluator.eval_page(raw_text, env, raw, name=filename)
         return env.body
     except evaluator.SuppressPageGenerationException:
         # The page can cancel its own production.
