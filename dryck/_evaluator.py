@@ -343,7 +343,11 @@ def eval_page(text, env, raw=False, tight=False, name=None):
     # This is the only thing that 'raw' actually affects.
     # (It's unrelated to the @raw annotation, sigh.)
     if not raw:
-        body = eval_text(env, body, tight)
+        try:
+            body = eval_text(env, body, tight)
+        except Exception as e:
+            raise Exception('Error while evaluating Markdown' +
+                            f' in {name}' if name else '') from e
 
     # Substitute the evaluated ◊'s for the squirreled placeholders.
     for k, v in nuts.items():
