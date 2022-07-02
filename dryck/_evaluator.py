@@ -352,7 +352,10 @@ def eval_page(text, env, raw=False, tight=False, name=None):
     # Substitute the evaluated ◊'s for the squirreled placeholders.
     for k, v in nuts.items():
         # HACK HACK HACK: Swallow <p> around block nuts.
-        body = body.replace('<p>{!}BLOCK' + k + '</p>', v)
+        if env.block_hack:
+            body = env.block_hack(k, v, body)
+        else:
+            body = body.replace('<p>{!}BLOCK' + k + '</p>', v)
         # If there was no <p>, still be sure to swallow the block marker.
         body = body.replace('{!}BLOCK' + k, v)
         # Else replace the nut as usual.
