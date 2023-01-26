@@ -1,5 +1,7 @@
 from ply import lex
 
+from . import _evaluator as evaluator
+
 # TODO: This almost certainly isn't quite right.
 # We probably misreport an error early in the block
 # at the line number of the end of the block.
@@ -24,6 +26,9 @@ class Lexer():
               'BRACE_CLOSE',
               'BRACE_CLOSE_OPEN',
               'TEXT')
+
+    def __init__(self, filename=None):
+        self.filename = filename
 
 
     def t_FUNC_OPEN(self, t):
@@ -76,15 +81,19 @@ class Lexer():
 
     def t_error(self, t):
         # TODO
-        raise Exception('Somehow, a parse error: ' + str(t))
+        line = t.lexer.lineno
+        excerpt = t.value[:20].splitlines()[0]
+        file = f'{self.filename} ' if self.filename else ''
+        raise evaluator.DryckException(
+            f'Parse error on {file}line {line} at: {excerpt}')
 
 
     def lexer(self):
         return lex.lex(module=self)
 
 
-def tokenize(text):
-    lexer = Lexer().lexer()
+def tokenize(text, filename=None):
+    lexer = Lexer(filename).lexer()
     lexer.input(text)
     while True:
         token = lexer.token()

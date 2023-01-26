@@ -7,6 +7,10 @@ import marko
 from . import _parser as parser
 
 
+class DryckException(Exception):
+    pass
+
+
 class SuppressPageGenerationException(Exception):
     pass
 
@@ -241,7 +245,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
     body = ''
     nuts = {}
 
-    tokens = parser.tokenize(text)
+    tokens = parser.tokenize(text, name)
 
     while True:
         try:
@@ -336,8 +340,8 @@ def eval_page(text, env, raw=False, tight=False, name=None):
             else:
                 raise Exception('Unknown token returned by parser ' + tok.type)
         except Exception as e:
-            raise Exception(f'Error on line {tok.lineno} col {parser.find_column(text, tok)}' +
-                            f' of {name}' if name else '') from e
+            raise DryckException(f'Error on line {tok.lineno} col {parser.find_column(text, tok)}' +
+                                 f' of {name}' if name else '') from e
 
     # Evaluate Markdown while ◊'s are still squirreled.
     # This is the only thing that 'raw' actually affects.
@@ -346,7 +350,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
         try:
             body = eval_text(env, body, tight)
         except Exception as e:
-            raise Exception('Error while evaluating Markdown' +
+            raise DryckException('Error while evaluating Markdown' +
                             f' in {name}' if name else '') from e
 
     # Substitute the evaluated ◊'s for the squirreled placeholders.
