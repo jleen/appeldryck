@@ -9,6 +9,10 @@ def _render(env, filename, raw):
     try:
         # Evaluate the page markup and put it in the context.
         raw_text = Path(filename).read_text()
+        if hasattr(env, 'replace'):
+            for (old, new) in env.replace.items():
+                raw_text = raw_text.replace(old, new)
+
         env.body = evaluator.eval_page(raw_text, env, raw, name=filename)
         return env.body
     except evaluator.SuppressPageGenerationException:
