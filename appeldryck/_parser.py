@@ -1,5 +1,4 @@
-from ply import lex
-
+from .vendor.ply import lex
 from . import _evaluator as evaluator
 
 # TODO: This almost certainly isn't quite right.

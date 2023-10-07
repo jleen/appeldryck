@@ -7,7 +7,6 @@ authors = ["John Leen <jleen@saturnvalley.org>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 marko = "^1.0.2"
-ply = "^3.11"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
