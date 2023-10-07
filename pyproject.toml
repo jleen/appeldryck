@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "dryck"
-version = "0.1.0"
+name = "appeldryck"
+version = "0.5.0"
 description = ""
 authors = ["John Leen <jleen@saturnvalley.org>"]
 
@@ -8,11 +8,6 @@ authors = ["John Leen <jleen@saturnvalley.org>"]
 python = "^3.8"
 marko = "^1.0.2"
 ply = "^3.11"
-
-[tool.poetry.dev-dependencies]
-
-[tool.poetry.scripts]
-dryck = 'dryck.dryck:build'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
