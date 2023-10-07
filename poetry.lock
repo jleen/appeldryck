@@ -16,19 +16,7 @@ files = [
 codehilite = ["pygments"]
 toc = ["python-slugify"]
 
-[[package]]
-name = "ply"
-version = "3.11"
-description = "Python Lex & Yacc"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
-    {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
-]
-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "4fb43865d398bfd716df5b97d6df35ff1867f3f199f5f62cb724a0f9ccdda507"
+content-hash = "37cec424918ddc43c9dddc77b18bf3b50a0b9a12f617af3e6e8fc4ecaf5aa739"
