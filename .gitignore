@@ -1,7 +1,2 @@
 .idea
-appeldryck.egg-info
 __pycache__
-bin
-lib
-pip-selfcheck.json
-pyvenv.cfg
