@@ -62,7 +62,7 @@ def t_arg_RBRACE(t):
     return t
 
 def t_arg_ARG(t):
-    r'[^}]+'
+    r'[^{}]+'
     t.lexer.lineno += t.value.count('\n')
     return t
 
@@ -91,7 +91,7 @@ def t_STAR(t):
 
 def t_BREAK(t):
     r'\n\n+'
-    t.lexer.lineno += 1
+    t.lexer.lineno += t.value.count('\n')
     return t
 
 def t_NEWLINE(t):

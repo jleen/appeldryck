@@ -81,8 +81,24 @@ def p_eval(p):
     p[0] = [ast.Eval(p[2])]
 
 def p_arg(p):
-    'arg : LBRACE ARG RBRACE'
+    'arg : LBRACE argcomps RBRACE'
     p[0] = p[2]
+
+def p_argcomps_list(p):
+    'argcomps : argcomp argcomps'
+    p[0] = p[1] + p[2]
+
+def p_argcomps_empty(p):
+    'argcomps : empty'
+    p[0] = ''
+
+def p_argcomp_flat(p):
+    'argcomp : ARG'
+    p[0] = p[1]
+
+def p_argcomp_balanced(p):
+    'argcomp : LBRACE argcomps RBRACE'
+    p[0] = '{' + p[2] + '}'
 
 
 #
@@ -148,7 +164,7 @@ def p_runs_empty(p):
 
 def p_starred(p):
     'starred : STAR runs STAR'
-    p[0] = [ast.Starred(p[2])]
+    p[0] = [ast.Star(p[2])]
 
 def p_break(p):
     'break : BREAK'
