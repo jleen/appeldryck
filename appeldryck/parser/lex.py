@@ -4,7 +4,7 @@ from .ply import lex
 
 tokens = ('METATAG', 'METAVAL', 'METAEOL',
           'FUNC', 'EVAL', 'LBRACE', 'RBRACE', 'ARG', 'LINK',
-          'STAR', 'NEWLINE', 'TEXT')
+          'STAR', 'BREAK', 'NEWLINE', 'TEXT')
 
 states = (('meta', 'exclusive'),
           ('arg', 'exclusive'),
@@ -87,6 +87,11 @@ def t_LINK(t):
 
 def t_STAR(t):
     r'\*'
+    return t
+
+def t_BREAK(t):
+    r'\n\n+'
+    t.lexer.lineno += 1
     return t
 
 def t_NEWLINE(t):
