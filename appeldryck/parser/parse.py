@@ -9,10 +9,26 @@ from .lex import tokens
 
 def p_document(p):
     'document : defs blanks elements'
+    defs = p[1]
+    elements = p[3]
     p[0] = p[1] + p[3]
     # Suppress terminal soft break, so as not to annoy the programmer.
-    if p[0][-1][0] == 'soft':
-        p[0] = p[0][:-1]
+    if len(elements) > 0 and elements[-1][0] == 'soft':
+        elements = elements[:-1]
+    p[0] = [['metatext', defs], ['text', make_paragraphs(elements)]]
+
+def make_paragraphs(elements):
+    out = []
+    block = []
+    for element in elements:
+        if element[0] == 'break':
+            out.append(block)
+            block = []
+        else:
+            block.append(element)
+    if len(block) > 0:
+        out.append(block)
+    return out
 
 def p_defs_list(p):
     'defs : metadata defs'
