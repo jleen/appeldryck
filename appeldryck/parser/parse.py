@@ -20,6 +20,7 @@ def p_element(p):
                | eval
                | apply
                | link
+               | starred
                | text'''
     p[0] = p[1]
 
@@ -84,13 +85,16 @@ def p_text(p):
 
 def p_runs_text(p):
     '''runs : TEXT runs
-            | STAR runs
             | NEWLINE runs'''
     p[0] = p[1] + p[2]
 
 def p_runs_empty(p):
     'runs : empty'
     p[0] = ''
+
+def p_starred(p):
+    'starred : STAR runs STAR'
+    p[0] = ['starred', p[2]]
 
 
 #
