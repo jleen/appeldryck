@@ -19,6 +19,7 @@ def p_element(p):
     '''element : metadata
                | eval
                | apply
+               | link
                | text'''
     p[0] = p[1]
 
@@ -45,9 +46,11 @@ def p_arg(p):
     'arg : LBRACE ARG RBRACE'
     p[0] = p[2]
 
+
 #
 # Functional application.
 #
+
 def p_apply(p):
     'apply : FUNC arglist'
     p[0] = ['apply', p[1], p[2]]
@@ -60,9 +63,21 @@ def p_arglist_empty(p):
     'arglist : empty'
     p[0] = []
 
+
+#
+# Links.
+#
+
+def p_link(p):
+    'link : LINK'
+    (dest, label) = p[1]
+    p[0] = ['link', dest, label]
+
+
 #
 # Static text.
 #
+
 def p_text(p):
     'text : runs'
     p[0] = ['text', p[1]]

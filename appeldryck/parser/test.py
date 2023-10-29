@@ -16,6 +16,9 @@ def lex(text):
 
 def parse(text):
     reload()
+    parse_internal(text)
+
+def parse_internal(text):
     p = parser.parse(text)
     pprint.pp(p)
 
@@ -23,3 +26,7 @@ def reload():
     importlib.reload(sys.modules['parser.lex'])
     importlib.reload(sys.modules['parser.parse'])
     importlib.reload(sys.modules['parser.test'])
+
+
+if __name__ == "__main__":
+    parse_internal(open(sys.argv[1], mode='r').read())

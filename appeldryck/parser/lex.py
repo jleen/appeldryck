@@ -3,7 +3,7 @@ import re
 from .ply import lex
 
 tokens = ('METATAG', 'METAVAL', 'METAEOL',
-          'FUNC', 'EVAL', 'LBRACE', 'RBRACE', 'ARG',
+          'FUNC', 'EVAL', 'LBRACE', 'RBRACE', 'ARG', 'LINK',
           'STAR', 'NEWLINE', 'TEXT')
 
 states = (('meta', 'exclusive'),
@@ -68,6 +68,20 @@ def t_arg_ARG(t):
 
 
 #
+# Links.
+#
+
+def t_LINK(t):
+    r'\[\[.*?\]\](?!])'
+    parsed = re.match(r'\[\[(.+?)(\|(.*))?]]', t.value)
+    (dest, label) = parsed.group(1, 3)
+    if not label:
+        label = dest
+    t.value = (dest, label)
+    return t
+
+
+#
 # Static markup.
 #
 
@@ -81,7 +95,7 @@ def t_NEWLINE(t):
     return t
 
 def t_TEXT(t):
-    r'[^◊}\n]+'
+    r'[^◊\[}\n]+'
     return t
 
 
