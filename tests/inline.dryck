@@ -10,3 +10,5 @@ But in other cases we might want
 with no whitespace between them, because they are both block elements.
 
 Likely this will depend on the functions’ annotations.
+
+Let’s not neglect to test ◊functions{with {nested} braces}.
