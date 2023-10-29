@@ -1,0 +1,12 @@
+Here is an example of an ◊inline_function, and another ◊function{with}{arguments}.
+
+This is a new paragraph, which contains a
+◊long_function_call{on its own line}
+which we might imagine evaluating to some text, and therefore *should* be surrounded by whitespace.
+
+But in other cases we might want
+◊one_function
+◊another_function
+with no whitespace between them, because they are both block elements.
+
+Likely this will depend on the functions’ annotations.
