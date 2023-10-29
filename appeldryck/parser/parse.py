@@ -1,6 +1,7 @@
 from .ply import yacc
 
 from .lex import tokens
+from . import ast
 
 
 #
@@ -13,21 +14,21 @@ def p_document(p):
     elements = p[3]
     p[0] = p[1] + p[3]
     # Suppress terminal soft break, so as not to annoy the programmer.
-    if len(elements) > 0 and elements[-1][0] == 'soft':
+    if len(elements) > 0 and isinstance(elements[-1], ast.Soft):
         elements = elements[:-1]
-    p[0] = [['metatext', defs], ['text', make_paragraphs(elements)]]
+    p[0] = ast.Document(defs, make_paragraphs(elements))
 
 def make_paragraphs(elements):
     out = []
     block = []
     for element in elements:
-        if element[0] == 'break':
-            out.append(block)
+        if isinstance(element, ast.Break):
+            out.append(ast.Paragraph(block))
             block = []
         else:
             block.append(element)
     if len(block) > 0:
-        out.append(block)
+        out.append(ast.Paragraph(block))
     return out
 
 def p_defs_list(p):
@@ -68,7 +69,7 @@ def p_element(p):
 def p_metadata(p):
     '''metadata : METATAG METAVAL
                 | METATAG METAVAL METAEOL'''
-    p[0] = ['metadata', p[1], p[2]]
+    p[0] = ast.Def(p[1], p[2])
 
 
 #
@@ -77,7 +78,7 @@ def p_metadata(p):
 
 def p_eval(p):
     'eval : EVAL arg'
-    p[0] = [['eval', p[2]]]
+    p[0] = [ast.Eval(p[2])]
 
 def p_arg(p):
     'arg : LBRACE ARG RBRACE'
@@ -90,7 +91,7 @@ def p_arg(p):
 
 def p_apply(p):
     'apply : FUNC arglist'
-    p[0] = [['apply', p[1], p[2]]]
+    p[0] = [ast.Apply(p[1], p[2])]
 
 def p_arglist_list(p):
     'arglist : arg arglist'
@@ -108,7 +109,7 @@ def p_arglist_empty(p):
 def p_link(p):
     'link : LINK'
     (dest, label) = p[1]
-    p[0] = [['link', dest, label]]
+    p[0] = [ast.Link(dest, label)]
 
 
 #
@@ -121,9 +122,9 @@ def p_text(p):
     # so adjacent functions can suppress them if they elect to.
     # In the middle of a run, we can safely convert newlines to spaces.
     chars = p[1]
-    ast = []
+    out = []
     if chars.startswith('\n'):
-        ast += [['soft']]
+        out.append(ast.Soft())
         chars = chars[1:]
     if chars.endswith('\n'):
         append_soft = True
@@ -131,10 +132,10 @@ def p_text(p):
     else:
         append_soft = False
     if len(chars) > 0:
-        ast += [['text', chars.replace('\n', ' ')]]
+        out.append(ast.Text(chars.replace('\n', ' ')))
     if append_soft:
-        ast += [['soft']]
-    p[0] = ast
+        out.append(ast.Soft())
+    p[0] = out
 
 def p_runs_text(p):
     '''runs : TEXT runs
@@ -147,11 +148,11 @@ def p_runs_empty(p):
 
 def p_starred(p):
     'starred : STAR runs STAR'
-    p[0] = [['starred', p[2]]]
+    p[0] = [ast.Starred(p[2])]
 
 def p_break(p):
     'break : BREAK'
-    p[0] = [['break']]
+    p[0] = [ast.Break()]
 
 
 #
