@@ -2,7 +2,10 @@ import re
 
 from .ply import lex
 
-tokens = ('METAEOL', 'FUNC', 'STAR', 'LBRACE', 'RBRACE', 'NEWLINE', 'TEXT')
+tokens = ('METATAG', 'METAVAL', 'METAEOL',
+          'FUNC', 'EVAL', 'LBRACE', 'RBRACE', 'ARG',
+          'STAR', 'NEWLINE', 'TEXT')
+
 states = (('meta', 'exclusive'),
           ('arg', 'exclusive'),
          )
@@ -40,7 +43,7 @@ def t_meta_METAEOL(t):
 #
 
 def t_FUNC(t):
-    r'◊\w*'
+    r'◊\w+'
     t.value = t.value[1:]
     return t
 
