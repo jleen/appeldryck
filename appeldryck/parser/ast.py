@@ -46,6 +46,10 @@ class Block:
     pass
 
 @dataclass
+class Raw(Block):
+    text: List[Element]
+
+@dataclass
 class Paragraph(Block):
     text: List[Element]
 

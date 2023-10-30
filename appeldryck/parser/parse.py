@@ -27,7 +27,10 @@ def p_blanks(p):
 
 def p_blocks_list(p):
     'blocks : block BREAK blocks'
-    p[0] = [p[1]] + p[3]
+    if p.parser.raw:
+        p[0] = [p[1], ast.Raw([ast.Text(p[2])])] + p[3]
+    else:
+        p[0] = [p[1]] + p[3]
 
 def p_blocks_final(p):
     'blocks : block'
@@ -55,7 +58,10 @@ def p_block_elements(p):
     elements = p[1]
     if len(elements) > 0 and isinstance(elements[-1], ast.Soft):
         elements = elements[:-1]
-    p[0] = ast.Paragraph(elements)
+    if p.parser.raw:
+        p[0] = ast.Raw(elements)
+    else:
+        p[0] = ast.Paragraph(elements)
 
 def p_elements_list(p):
     'elements : element elements'
@@ -150,20 +156,23 @@ def p_text(p):
     # so adjacent functions can suppress them if they elect to.
     # In the middle of a span, we can safely convert newlines to spaces.
     chars = p[1]
-    out = []
-    if chars.startswith('\n'):
-        out.append(ast.Soft())
-        chars = chars[1:]
-    if chars.endswith('\n'):
-        append_soft = True
-        chars = chars[:-1]
+    if p.parser.raw:
+        p[0] = [ast.Text(chars)]
     else:
-        append_soft = False
-    if len(chars) > 0:
-        out.append(ast.Text(chars.replace('\n', ' ')))
-    if append_soft:
-        out.append(ast.Soft())
-    p[0] = out
+        out = []
+        if chars.startswith('\n'):
+            out.append(ast.Soft())
+            chars = chars[1:]
+        if chars.endswith('\n'):
+            append_soft = True
+            chars = chars[:-1]
+        else:
+            append_soft = False
+        if len(chars) > 0:
+            out.append(ast.Text(chars.replace('\n', ' ')))
+        if append_soft:
+            out.append(ast.Soft())
+        p[0] = out
 
 def p_spans_text(p):
     '''spans : TEXT spans
@@ -214,3 +223,4 @@ def p_error(p):
 
 
 parser = yacc.yacc()
+parser.raw = False

@@ -162,6 +162,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
 
     # TODO: Use filename for error handling.
     lexer.lineno = 0
+    parser.raw = raw  # TODO: Hahahaha.
     doc = parser.parse(text)
 
     if tight and len(doc.text) > 1:
@@ -176,7 +177,11 @@ def eval_page(text, env, raw=False, tight=False, name=None):
 
         for p in doc.text:
 
-            if isinstance(p, ast.Paragraph):
+            if isinstance(p, ast.Raw):
+                text = eval_text(p.text, env, raw)
+                body += text
+
+            elif isinstance(p, ast.Paragraph):
                 text = eval_text(p.text, env, raw)
                 body += text if tight else env.p(text)
 
@@ -188,7 +193,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
                 body += env.ul(items)
 
             else:
-                raise Exception('Bad document')
+                raise Exception('Bad document element: ' + str(p))
 
 
     except Exception as e:
