@@ -46,6 +46,11 @@ class Block:
     pass
 
 @dataclass
+class Heading(Block):
+    text: List[Element]
+    level: int
+
+@dataclass
 class Raw(Block):
     text: List[Element]
 

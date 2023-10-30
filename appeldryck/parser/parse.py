@@ -36,6 +36,11 @@ def p_blocks_final(p):
     'blocks : block'
     p[0] = [p[1]]
 
+
+#
+# Itemized lists.
+#
+
 def p_block_itemized(p):
     'block : items'
     p[0] = ast.Itemized(p[1], ordered=False)
@@ -51,6 +56,20 @@ def p_items_base(p):
 def p_item(p):
     'item : BULLET elements'
     p[0] = ast.Item(p[2])
+
+
+#
+# Headings.
+#
+
+def p_block_heading(p):
+    'block : OCTOTHORPE elements'
+    p[0] = ast.Heading(p[2], p[1].count('#'))
+
+
+#
+# Text elements.
+#
 
 def p_block_elements(p):
     'block : elements'

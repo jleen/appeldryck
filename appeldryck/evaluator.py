@@ -192,6 +192,10 @@ def eval_page(text, env, raw=False, tight=False, name=None):
                     items += env.li(text)
                 body += env.ul(items)
 
+            elif isinstance(p, ast.Heading):
+                text = eval_text(p.text, env, raw)
+                body += env.heading(p.level, text)
+
             else:
                 raise Exception('Bad document element: ' + str(p))
 
