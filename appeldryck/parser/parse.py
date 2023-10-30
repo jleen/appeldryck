@@ -167,6 +167,7 @@ def p_text(p):
 
 def p_spans_text(p):
     '''spans : TEXT spans
+             | LBRACKET spans
              | NEWLINE spans'''
     p[0] = p[1] + p[2]
 
