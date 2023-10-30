@@ -4,7 +4,7 @@ from .ply import lex
 
 tokens = ('METATAG', 'METAVAL', 'METAEOL',
           'FUNC', 'EVAL', 'LBRACE', 'RBRACE', 'ARG', 'LINK',
-          'STAR', 'BREAK', 'NEWLINE', 'TEXT', 'LBRACKET',
+          'STAR', 'BREAK', 'HARDBREAK', 'NEWLINE', 'TEXT', 'LBRACKET',
           'BULLET', 'OCTOTHORPE')
 
 states = (('meta', 'exclusive'),
@@ -113,6 +113,11 @@ def t_STAR(t):
     r'\*'
     return t
 
+def t_HARDBREAK(t):
+    r'\\\n'
+    t.lexer.lineno += 1
+    return t
+
 def t_BREAK(t):
     r'\n\n+'
     t.lexer.lineno += t.value.count('\n')
@@ -128,7 +133,7 @@ def t_LBRACKET(t):
     return t
 
 def t_TEXT(t):
-    r'[^◊*\[}\n]+'
+    r'[^◊*\\\[}\n]+'
     return t
 
 

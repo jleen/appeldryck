@@ -151,8 +151,11 @@ def eval_text(elements, env, raw):
         elif isinstance(t, ast.Star):
             text += env.em(eval_text(t.text, env, raw))
 
+        elif isinstance(t, ast.Break):
+            text += env.br()
+
         else:
-            raise Exception('Bad block: ' + str(t))
+            raise Exception('Bad element: ' + str(t))
 
     return text
 
@@ -197,7 +200,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
                 body += env.heading(p.level, text)
 
             else:
-                raise Exception('Bad document element: ' + str(p))
+                raise Exception('Bad block: ' + str(p))
 
 
     except Exception as e:

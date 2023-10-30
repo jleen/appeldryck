@@ -91,11 +91,8 @@ def p_elements_empty(p):
     p[0] = []
 
 def p_element(p):
-    '''element : eval
-               | apply
-               | link
-               | starred
-               | text'''
+    '''element : starfield
+               | starred'''
     p[0] = p[1]
 
 
@@ -203,6 +200,10 @@ def p_spans_empty(p):
     'spans : empty'
     p[0] = ''
 
+def p_hardbreak(p):
+    'hardbreak : HARDBREAK'
+    p[0] = [ast.Break()]
+
 
 #
 # Starred text.
@@ -225,6 +226,7 @@ def p_starfield(p):
     '''starfield : eval
                  | apply
                  | link
+                 | hardbreak
                  | text'''
     p[0] = p[1]
 
