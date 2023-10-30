@@ -10,7 +10,10 @@ from . import ast
 
 def p_document(p):
     'document : defs blanks blocks'
-    p[0] = ast.Document(p[1], p[3])
+    if p.parser.raw:
+        p[0] = ast.Document(p[1], [ast.Raw([ast.Text(p[2])])] + p[3])
+    else:
+        p[0] = ast.Document(p[1], p[3])
 
 def p_defs_list(p):
     'defs : metadata defs'
@@ -23,7 +26,7 @@ def p_defs_empty(p):
 def p_blanks(p):
     '''blanks : NEWLINE blanks
               | empty'''
-    pass
+    p[0] = (len(p[1]) * '\n') if p[1] else ''
 
 def p_blocks_list(p):
     'blocks : block BREAK blocks'
