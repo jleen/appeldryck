@@ -107,6 +107,56 @@ def combine_until_close(tokens, multi=False):
     return out
 
 
+def eval_text(elements, env, raw):
+    text = ''
+
+    for t in elements:
+
+        if isinstance(t, ast.Eval):
+            methods = {x: getattr(env, x) for x in dir(env)
+                    if inspect.ismethod(getattr(env, x))}
+            methods['__context__'] = env
+            ret = eval(t.expr.rstrip(), env.__dict__, methods)
+            if not isinstance(ret, str):
+                raise Exception(f'Expected eval to return str, but got {ret}')
+            text += ret
+
+        elif isinstance(t, ast.Apply):
+            # A ◊foo followed by one or more {expr}'s
+            # is a function call with arguments.
+            # A plain ◊foo with no args
+            # can be either a variable or a nullary function call.
+            indent = 0  # TODO: get_indent(text, tok)
+            fn = getattr(env, t.func)
+            if callable(fn):
+                ret = apply_func(fn, t.args, env, raw, indent)
+                # TODO: Handle props.
+                props = get_func_props(fn)
+                text += ret
+            elif len(t.args) == 0:
+                text += fn
+            else:
+                raise DryckException('Tried to pass args to a non-callable')
+
+        elif isinstance(t, ast.Link):
+            indent = 0  # TODO: get_indent(text, tok)
+            text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
+
+        elif isinstance(t, ast.Text):
+            text += t.text
+
+        elif isinstance(t, ast.Soft):
+            pass
+
+        elif isinstance(t, ast.Star):
+            text += env.em(t.text)
+
+        else:
+            raise Exception('Bad block')
+
+    return text
+
+
 def eval_page(text, env, raw=False, tight=False, name=None):
     body = ''
 
@@ -125,53 +175,21 @@ def eval_page(text, env, raw=False, tight=False, name=None):
             setattr(env, md.key, md.val)
 
         for p in doc.text:
-            text = ""
 
-            for t in p.text:
+            if isinstance(p, ast.Paragraph):
+                text = eval_text(p.text, env, raw)
+                body += text if tight else env.p(text)
 
-                if isinstance(t, ast.Eval):
-                    methods = {x: getattr(env, x) for x in dir(env)
-                            if inspect.ismethod(getattr(env, x))}
-                    methods['__context__'] = env
-                    ret = eval(t.expr.rstrip(), env.__dict__, methods)
-                    if not isinstance(ret, str):
-                        raise Exception(f'Expected eval to return str, but got {ret}')
-                    text += ret
+            elif isinstance(p, ast.Itemized):
+                items = ''
+                for item in p.items:
+                    text = eval_text(item.text, env, raw)
+                    items += env.li(text)
+                body += env.ul(items)
 
-                elif isinstance(t, ast.Apply):
-                    # A ◊foo followed by one or more {expr}'s
-                    # is a function call with arguments.
-                    # A plain ◊foo with no args
-                    # can be either a variable or a nullary function call.
-                    indent = 0  # TODO: get_indent(text, tok)
-                    fn = getattr(env, t.func)
-                    if callable(fn):
-                        ret = apply_func(fn, t.args, env, raw, indent)
-                        # TODO: Handle props.
-                        props = get_func_props(fn)
-                        text += ret
-                    elif len(t.args) == 0:
-                        text += fn
-                    else:
-                        raise DryckException('Tried to pass args to a non-callable')
+            else:
+                raise Exception('Bad document')
 
-                elif isinstance(t, ast.Link):
-                    indent = 0  # TODO: get_indent(text, tok)
-                    text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
-
-                elif isinstance(t, ast.Text):
-                    text += t.text
-
-                elif isinstance(t, ast.Soft):
-                    pass
-
-                elif isinstance(t, ast.Star):
-                    text += env.em(t.text)
-
-                else:
-                    raise Exception('Bad parse')
-
-            body += text if tight else env.p(text)
 
     except Exception as e:
         if type(e) == SuppressPageGenerationException:

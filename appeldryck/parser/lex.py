@@ -4,7 +4,7 @@ from .ply import lex
 
 tokens = ('METATAG', 'METAVAL', 'METAEOL',
           'FUNC', 'EVAL', 'LBRACE', 'RBRACE', 'ARG', 'LINK',
-          'STAR', 'BREAK', 'NEWLINE', 'TEXT')
+          'STAR', 'BREAK', 'NEWLINE', 'TEXT', 'BULLET')
 
 states = (('meta', 'exclusive'),
           ('arg', 'exclusive'),
@@ -83,6 +83,15 @@ def t_LINK(t):
     if not label:
         label = dest
     t.value = (dest, label)
+    return t
+
+
+#
+# Itemized lists.
+#
+
+def t_BULLET(t):
+    r'(^|(?<=\n))\*\s+'
     return t
 
 

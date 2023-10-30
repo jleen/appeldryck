@@ -9,27 +9,8 @@ from . import ast
 #
 
 def p_document(p):
-    'document : defs blanks elements'
-    defs = p[1]
-    elements = p[3]
-    p[0] = p[1] + p[3]
-    # Suppress terminal soft break, so as not to annoy the programmer.
-    if len(elements) > 0 and isinstance(elements[-1], ast.Soft):
-        elements = elements[:-1]
-    p[0] = ast.Document(defs, make_paragraphs(elements))
-
-def make_paragraphs(elements):
-    out = []
-    block = []
-    for element in elements:
-        if isinstance(element, ast.Break):
-            out.append(ast.Paragraph(block))
-            block = []
-        else:
-            block.append(element)
-    if len(block) > 0:
-        out.append(ast.Paragraph(block))
-    return out
+    'document : defs blanks blocks'
+    p[0] = ast.Document(p[1], p[3])
 
 def p_defs_list(p):
     'defs : metadata defs'
@@ -44,6 +25,38 @@ def p_blanks(p):
               | empty'''
     pass
 
+def p_blocks_list(p):
+    'blocks : block BREAK blocks'
+    p[0] = [p[1]] + p[3]
+
+def p_blocks_final(p):
+    'blocks : block'
+    p[0] = [p[1]]
+
+def p_block_itemized(p):
+    'block : items'
+    p[0] = ast.Itemized(p[1], ordered=False)
+
+def p_items_list(p):
+    'items : item items'
+    p[0] = [p[1]] + p[2]
+
+def p_items_base(p):
+    'items : item'
+    p[0] = [p[1]]
+
+def p_item(p):
+    'item : BULLET elements'
+    p[0] = ast.Item(p[2])
+
+def p_block_elements(p):
+    'block : elements'
+    # Suppress terminal soft break, so as not to annoy the programmer.
+    elements = p[1]
+    if len(elements) > 0 and isinstance(elements[-1], ast.Soft):
+        elements = elements[:-1]
+    p[0] = ast.Paragraph(elements)
+
 def p_elements_list(p):
     'elements : element elements'
     p[0] = p[1] + p[2]
@@ -57,8 +70,7 @@ def p_element(p):
                | apply
                | link
                | starred
-               | text
-               | break'''
+               | text'''
     p[0] = p[1]
 
 
@@ -133,10 +145,10 @@ def p_link(p):
 #
 
 def p_text(p):
-    'text : runs'
-    # Recognize soft breaks at the beginning and end of a run,
+    'text : spans'
+    # Recognize soft breaks at the beginning and end of a span,
     # so adjacent functions can suppress them if they elect to.
-    # In the middle of a run, we can safely convert newlines to spaces.
+    # In the middle of a span, we can safely convert newlines to spaces.
     chars = p[1]
     out = []
     if chars.startswith('\n'):
@@ -153,22 +165,18 @@ def p_text(p):
         out.append(ast.Soft())
     p[0] = out
 
-def p_runs_text(p):
-    '''runs : TEXT runs
-            | NEWLINE runs'''
+def p_spans_text(p):
+    '''spans : TEXT spans
+            | NEWLINE spans'''
     p[0] = p[1] + p[2]
 
-def p_runs_empty(p):
-    'runs : empty'
+def p_spans_empty(p):
+    'spans : empty'
     p[0] = ''
 
 def p_starred(p):
-    'starred : STAR runs STAR'
+    'starred : STAR spans STAR'
     p[0] = [ast.Star(p[2])]
-
-def p_break(p):
-    'break : BREAK'
-    p[0] = [ast.Break()]
 
 
 #

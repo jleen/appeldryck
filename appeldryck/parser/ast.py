@@ -42,10 +42,23 @@ class Star(Element):
     text: str
 
 @dataclass
-class Paragraph:
+class Block:
+    pass
+
+@dataclass
+class Paragraph(Block):
     text: List[Element]
+
+@dataclass
+class Item:
+    text: List[Element]
+
+@dataclass
+class Itemized(Block):
+    items: List[Item]
+    ordered: bool
 
 @dataclass
 class Document:
     metatext: List[Def]
-    text: List[Paragraph]
+    text: List[Block]
