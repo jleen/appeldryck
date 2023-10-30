@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import sys
 
-from . import _evaluator as evaluator
+from . import evaluator
 
 
 def _render(env, filename, raw):

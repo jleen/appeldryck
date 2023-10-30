@@ -1,7 +1,7 @@
 import html
 import os
 
-from . import _evaluator as evaluator
+from . import evaluator
 
 
 class Context:
