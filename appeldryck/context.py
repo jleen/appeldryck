@@ -1,7 +1,7 @@
 import html
 import os
 
-from . import evaluator
+from . import evaluator, renderer
 
 
 class Context:
@@ -22,9 +22,6 @@ class HtmlContext(Context):
     '''Base dryck context for HTML output.
 
     Defines rendering for basic markdown tags that any dryck will need.
-
-    This is about half the logic from marko.HTMLRenderer.
-    The rest is in HtmlContext.
     '''
 
     def heading(self, level, body):
@@ -128,7 +125,7 @@ def templates(sources):
         for source in sources:
             def create_run_template(source):
                 def run_template(self):
-                    return evaluator.render(self, source)
+                    return renderer.render(self, source)
                 return run_template
             name = os.path.basename(source).split('.')[0]
             setattr(clazz, name, create_run_template(source))
