@@ -3,6 +3,7 @@ import re
 import uuid
 
 from .parser import ast
+from .parser.lex import lexer
 from .parser.parse import parser
 
 
@@ -106,22 +107,15 @@ def combine_until_close(tokens, multi=False):
     return out
 
 
-def eval_text(env, text, tight):
-    # TODO: Unsquirrel before calling tag functions?
-    renderer = make_DryckRenderer(env)
-    markdown = marko.Markdown(renderer=renderer)
-    parsed = markdown.parse(text)
-    if tight:
-        for child in parsed.children:
-            child._tight = True
-    return markdown.render(parsed)
-
-
 def eval_page(text, env, raw=False, tight=False, name=None):
     body = ''
 
     # TODO: Use filename for error handling.
+    lexer.lineno = 0
     doc = parser.parse(text)
+
+    if tight and len(doc.text) > 1:
+        raise DryckException('Too many paragraphs in tight argument')
 
     try:
         # State manipulators.
@@ -166,7 +160,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
                     text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
 
                 elif isinstance(t, ast.Text):
-                    text = t.text
+                    text += t.text
 
                 elif isinstance(t, ast.Soft):
                     pass
@@ -177,7 +171,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
                 else:
                     raise Exception('Bad parse')
 
-            body += env.p(text)
+            body += text if tight else env.p(text)
 
     except Exception as e:
         if type(e) == SuppressPageGenerationException:

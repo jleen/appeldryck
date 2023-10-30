@@ -180,7 +180,7 @@ def p_empty(p):
     pass
 
 def p_error(p):
-    raise Exception('Nope')
+    raise Exception(f'Parse error on line {p.lineno}')
 
 
 parser = yacc.yacc()

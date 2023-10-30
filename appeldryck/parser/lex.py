@@ -51,7 +51,12 @@ def t_EVAL(t):
     r'◊'
     return t
 
-def t_INITIAL_arg_LBRACE(t):
+def t_LBRACE(t):
+    r'\n?{'
+    t.lexer.push_state('arg')
+    return t
+
+def t_arg_LBRACE(t):
     r'{'
     t.lexer.push_state('arg')
     return t
