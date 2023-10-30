@@ -114,7 +114,7 @@ def t_NEWLINE(t):
     return t
 
 def t_TEXT(t):
-    r'[^◊*\[}\n]+'
+    r'[^◊*}\n]+'
     return t
 
 
