@@ -10,7 +10,7 @@ from . import ast
 
 def p_document(p):
     'document : defs blanks blocks'
-    if p.parser.raw:
+    if p.parser.raw and len(p[2]) > 0:
         p[0] = ast.Document(p[1], [ast.Raw([ast.Text(p[2])])] + p[3])
     else:
         p[0] = ast.Document(p[1], p[3])
