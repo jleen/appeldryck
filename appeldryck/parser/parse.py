@@ -174,9 +174,30 @@ def p_spans_empty(p):
     'spans : empty'
     p[0] = ''
 
+
+#
+# Starred text.
+#
+
 def p_starred(p):
-    'starred : STAR spans STAR'
+    'starred : STAR starfields STAR'
     p[0] = [ast.Star(p[2])]
+
+
+def p_starfields_list(p):
+    'starfields : starfield starfields'
+    p[0] = p[1] + p[2]
+
+def p_starfields_base(p):
+    'starfields : starfield'
+    p[0] = p[1]
+
+def p_starfield(p):
+    '''starfield : eval
+                 | apply
+                 | link
+                 | text'''
+    p[0] = p[1]
 
 
 #

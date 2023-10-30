@@ -39,7 +39,7 @@ class Break(Element):
 
 @dataclass
 class Star(Element):
-    text: str
+    text: List[Element]
 
 @dataclass
 class Block:

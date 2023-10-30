@@ -149,10 +149,10 @@ def eval_text(elements, env, raw):
             pass
 
         elif isinstance(t, ast.Star):
-            text += env.em(t.text)
+            text += env.em(eval_text(t.text, env, raw))
 
         else:
-            raise Exception('Bad block')
+            raise Exception('Bad block: ' + str(t))
 
     return text
 
