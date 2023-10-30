@@ -167,7 +167,7 @@ def p_text(p):
 
 def p_spans_text(p):
     '''spans : TEXT spans
-            | NEWLINE spans'''
+             | NEWLINE spans'''
     p[0] = p[1] + p[2]
 
 def p_spans_empty(p):
