@@ -111,51 +111,52 @@ def eval_text(elements, env, raw):
     text = ''
 
     for t in elements:
+        match t:
 
-        if isinstance(t, ast.Eval):
-            methods = {x: getattr(env, x) for x in dir(env)
-                    if inspect.ismethod(getattr(env, x))}
-            methods['__context__'] = env
-            ret = eval(t.expr.rstrip(), env.__dict__, methods)
-            if not isinstance(ret, str):
-                raise Exception(f'Expected eval to return str, but got {ret}')
-            text += ret
-
-        elif isinstance(t, ast.Apply):
-            # A ◊foo followed by one or more {expr}'s
-            # is a function call with arguments.
-            # A plain ◊foo with no args
-            # can be either a variable or a nullary function call.
-            indent = 0  # TODO: get_indent(text, tok)
-            fn = getattr(env, t.func)
-            if callable(fn):
-                ret = apply_func(fn, t.args, env, raw, indent)
-                # TODO: Handle props.
-                props = get_func_props(fn)
+            case ast.Eval(expr):
+                methods = {x: getattr(env, x) for x in dir(env)
+                        if inspect.ismethod(getattr(env, x))}
+                methods['__context__'] = env
+                ret = eval(expr.rstrip(), env.__dict__, methods)
+                if not isinstance(ret, str):
+                    raise Exception(f'Expected eval to return str, but got {ret}')
                 text += ret
-            elif len(t.args) == 0:
-                text += fn
-            else:
-                raise DryckException('Tried to pass args to a non-callable')
 
-        elif isinstance(t, ast.Link):
-            indent = 0  # TODO: get_indent(text, tok)
-            text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
+            case ast.Apply(func, args):
+                # A ◊foo followed by one or more {expr}'s
+                # is a function call with arguments.
+                # A plain ◊foo with no args
+                # can be either a variable or a nullary function call.
+                indent = 0  # TODO: get_indent(text, tok)
+                fn = getattr(env, func)
+                if callable(fn):
+                    ret = apply_func(fn, args, env, raw, indent)
+                    # TODO: Handle props.
+                    props = get_func_props(fn)
+                    text += ret
+                elif len(args) == 0:
+                    text += fn
+                else:
+                    raise DryckException('Tried to pass args to a non-callable')
 
-        elif isinstance(t, ast.Text):
-            text += t.text
+            case ast.Link(dest, label):
+                indent = 0  # TODO: get_indent(text, tok)
+                text += apply_func(env.wiki_link, (dest, label), env, raw, indent)
 
-        elif isinstance(t, ast.Soft):
-            pass
+            case ast.Text(body):
+                text += body
 
-        elif isinstance(t, ast.Star):
-            text += env.em(eval_text(t.text, env, raw))
+            case ast.Soft():
+                pass
 
-        elif isinstance(t, ast.Break):
-            text += env.br()
+            case ast.Star(body):
+                text += env.em(eval_text(body, env, raw))
 
-        else:
-            raise Exception('Bad element: ' + str(t))
+            case ast.Break():
+                text += env.br()
+
+            case bad:
+                raise Exception('Bad element: ' + str(bad))
 
     return text
 
