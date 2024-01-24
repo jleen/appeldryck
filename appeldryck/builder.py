@@ -1,7 +1,6 @@
 import importlib
 import importlib.util
 import inspect
-import os
 import shutil
 
 from pathlib import Path
@@ -22,12 +21,10 @@ def build():
         loader.exec_module(mod)
         ctx = [cls for _, cls in inspect.getmembers(mod) if inspect.isclass(cls)][0]()
 
-    the_walk = list(os.walk(SRC))
+    the_walk = list(Path(SRC).walk())
 
     # Preload _templates
     for root, dirs, files in the_walk:
-        root = Path(root)
-
         for src in files:
             src = root / src
             if src.suffix == '.dryck' and src.name.startswith('_'):
@@ -35,8 +32,6 @@ def build():
                 contextualize(src, ctx)
 
     for root, dirs, files in the_walk:
-        root = Path(root)
-
         destdir = Path(DEST) / root.relative_to(SRC)
         print(f'creating {destdir}')
         makedirs(destdir)
@@ -53,7 +48,7 @@ def build():
         ctx.post()
 
 def makedirs(dir):
-    os.makedirs(dir, exist_ok=True)
+    Path(dir).mkdir(exist_ok=True)
 
 def copy(src):
     dest = Path(DEST) / src.relative_to(SRC)
