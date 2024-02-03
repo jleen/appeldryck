@@ -11,6 +11,26 @@ class Context:
     def suppress(self):
         raise evaluator.SuppressPageGenerationException()
 
+    @evaluator.raw
+    def _if(self, cond, body):
+        if eval(cond, self.__dict__):
+            return self.eval(body, raw=True, tight=True)
+        else:
+            return ''
+
+    @evaluator.raw
+    def loop(self, seq, body):
+        ret = ''
+        for elt in eval(seq, self.__dict__):
+            # TODO: Use an overlay here.
+            old = self.__dict__.copy()
+            self.__dict__.update(elt)
+            ret += self.eval(body, raw=True, tight=True)
+            self.__dict__ = old
+        return ret
+
+setattr(Context, 'if', Context._if)
+
 
 def tag(name, body, block=False, inline=False):
     brk = '\n' if block else ''

@@ -169,7 +169,7 @@ def eval_page(text, env, raw=False, tight=False, name=None):
     parser.raw = raw  # TODO: Hahahaha.
     doc = parser.parse(text)
 
-    if tight and len(doc.text) > 1:
+    if tight and not raw and len(doc.text) > 1:
         raise DryckException('Too many paragraphs in tight argument: ' + str(doc))
 
     try:

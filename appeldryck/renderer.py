@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import sys
 
+from . import context
 from . import evaluator
 
 
@@ -25,6 +26,12 @@ def markup(env, filename):
 
 
 def preprocess(env, filename):
+    # If we were passed a dict, it's safe to assume we wanted a generic
+    # Context object, since we're in preprocessor mode.
+    if type(env) is dict:
+        ctx = context.Context()
+        ctx.__dict__ |= env
+        env = ctx
     return _render(env, filename, True)
 
 
