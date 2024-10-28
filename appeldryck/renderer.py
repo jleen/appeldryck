@@ -9,7 +9,9 @@ from . import evaluator
 def _render(env, filename, raw):
     try:
         # Evaluate the page markup and put it in the context.
-        raw_text = Path(filename).read_text()
+        if not isinstance(filename, Path):
+            filename = Path(filename)
+        raw_text = filename.read_text()
         if hasattr(env, 'replace'):
             for (old, new) in env.replace.items():
                 raw_text = raw_text.replace(old, new)
