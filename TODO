@@ -1,3 +1,7 @@
+- Need separate parsers for markup mode and preprocessor mode
+- Parsers should be classes
+- .dryck files should be discovered and wrapped as objects (or classes?) on initialization
+
 - Fix indent
 - Fix line number for error
 - Accept blank output from ◊functions
