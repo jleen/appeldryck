@@ -21,7 +21,7 @@ states = (('meta', 'exclusive'),
 def t_METATAG(t):
     r'(^|(?<=\n))◊\w*:\s*'
     t.lexer.begin('meta')
-    t.value = re.match('◊(\w*):', t.value).group(1)
+    t.value = re.match(r'◊(\w*):', t.value).group(1)
     return t
 
 def t_meta_METAVAL(t):
@@ -133,7 +133,7 @@ def t_LBRACKET(t):
     return t
 
 def t_TEXT(t):
-    r'[^◊*\\\[}\n]+'
+    r'[^◊*\[\n]+'
     return t
 
 
@@ -142,10 +142,10 @@ def t_TEXT(t):
 #
 
 def t_arg_error(t):
-    raise Exception(f'Unable to tokenize on line {t.lexer.lineno} at: {t.value[:20].splitlines()[0]}')
+    raise Exception(f'Unable to tokenize in arg on line {t.lexer.lineno} at: {t.value[:20].splitlines()[0]}')
 
 def t_meta_error(t):
-    raise Exception(f'Unable to tokenize on line {t.lexer.lineno} at: {t.value[:20].splitlines()[0]}')
+    raise Exception(f'Unable to tokenize in meta on line {t.lexer.lineno} at: {t.value[:20].splitlines()[0]}')
 
 def t_error(t):
     raise Exception(f'Unable to tokenize on line {t.lexer.lineno} at: {t.value[:20].splitlines()[0]}')
