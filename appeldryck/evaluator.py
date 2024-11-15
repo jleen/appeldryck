@@ -160,13 +160,24 @@ def eval_text(elements, env, raw):
     return text
 
 
-def eval_page(text, env, raw=False, tight=False, name=None):
+def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
     body = ''
 
     # TODO: Use filename for error handling.
     lexer.lineno = 0
     parser.raw = raw  # TODO: Hahahaha.
-    doc = parser.parse(text)
+
+    if debug:
+        import logging
+        logging.basicConfig(
+            level = logging.DEBUG,
+            filename = 'lex.log',
+            filemode = 'w',
+            format = "%(filename)10s:%(lineno)4d:%(message)s")
+        log = logging.getLogger()
+    else:
+        log = False
+    doc = parser.parse(text, debug=log)
 
     if tight and not raw and len(doc.text) > 1:
         raise DryckException('Too many paragraphs in tight argument: ' + str(doc))
