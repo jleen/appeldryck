@@ -5,6 +5,7 @@ import uuid
 from .parser import ast
 from .parser.lex import lexer
 from .parser.parse import parser
+from .parser.rawparse import raw_parser
 
 
 class DryckException(Exception):
@@ -165,7 +166,6 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
 
     # TODO: Use filename for error handling.
     lexer.lineno = 0
-    parser.raw = raw  # TODO: Hahahaha.
 
     if debug:
         import logging
@@ -177,7 +177,10 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
         log = logging.getLogger()
     else:
         log = False
-    doc = parser.parse(text, debug=log)
+    if raw:
+        doc = raw_parser.parse(text, debug=log)
+    else:
+        doc = parser.parse(text, debug=log)
 
     if tight and not raw and len(doc.text) > 1:
         raise DryckException('Too many paragraphs in tight argument: ' + str(doc))
