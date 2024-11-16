@@ -133,7 +133,7 @@ def t_LBRACKET(t):
     return t
 
 def t_TEXT(t):
-    r'[^◊*\[}\n]+'
+    r'[^◊*\[\n]+'
     return t
 
 
