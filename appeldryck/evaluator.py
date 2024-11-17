@@ -112,51 +112,52 @@ def eval_text(elements, env, raw):
     text = ''
 
     for t in elements:
+        match t:
 
-        if isinstance(t, ast.Eval):
-            methods = {x: getattr(env, x) for x in dir(env)
-                    if inspect.ismethod(getattr(env, x))}
-            methods['__context__'] = env
-            ret = eval(t.expr.rstrip(), env.__dict__, methods)
-            if not isinstance(ret, str):
-                raise Exception(f'Expected eval to return str, but got {ret}')
-            text += ret
-
-        elif isinstance(t, ast.Apply):
-            # A ◊foo followed by one or more {expr}'s
-            # is a function call with arguments.
-            # A plain ◊foo with no args
-            # can be either a variable or a nullary function call.
-            indent = 0  # TODO: get_indent(text, tok)
-            fn = getattr(env, t.func)
-            if callable(fn):
-                ret = apply_func(fn, t.args, env, raw, indent)
-                # TODO: Handle props.
-                props = get_func_props(fn)
+            case ast.Eval():
+                methods = {x: getattr(env, x) for x in dir(env)
+                        if inspect.ismethod(getattr(env, x))}
+                methods['__context__'] = env
+                ret = eval(t.expr.rstrip(), env.__dict__, methods)
+                if not isinstance(ret, str):
+                    raise Exception(f'Expected eval to return str, but got {ret}')
                 text += ret
-            elif len(t.args) == 0:
-                text += fn
-            else:
-                raise DryckException('Tried to pass args to a non-callable')
 
-        elif isinstance(t, ast.Link):
-            indent = 0  # TODO: get_indent(text, tok)
-            text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
+            case ast.Apply():
+                # A ◊foo followed by one or more {expr}'s
+                # is a function call with arguments.
+                # A plain ◊foo with no args
+                # can be either a variable or a nullary function call.
+                indent = 0  # TODO: get_indent(text, tok)
+                fn = getattr(env, t.func)
+                if callable(fn):
+                    ret = apply_func(fn, t.args, env, raw, indent)
+                    # TODO: Handle props.
+                    props = get_func_props(fn)
+                    text += ret
+                elif len(t.args) == 0:
+                    text += fn
+                else:
+                    raise DryckException('Tried to pass args to a non-callable')
 
-        elif isinstance(t, ast.Text):
-            text += t.text
+            case ast.Link():
+                indent = 0  # TODO: get_indent(text, tok)
+                text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
 
-        elif isinstance(t, ast.Soft):
-            pass
+            case ast.Text():
+                text += t.text
 
-        elif isinstance(t, ast.Star):
-            text += env.em(eval_text(t.text, env, raw))
+            case ast.Soft():
+                pass
 
-        elif isinstance(t, ast.Break):
-            text += env.br()
+            case ast.Star():
+                text += env.em(eval_text(t.text, env, raw))
 
-        else:
-            raise Exception('Bad element: ' + str(t))
+            case ast.Break():
+                text += env.br()
+
+            case _:
+                raise Exception('Bad element: ' + str(t))
 
     return text
 
@@ -193,29 +194,30 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
             setattr(env, md.key, md.val)
 
         for p in doc.text:
+            match p:
 
-            if isinstance(p, ast.Raw):
-                assert raw, 'Raw AST node in non-raw context; probably a parser bug'
-                text = eval_text(p.text, env, raw)
-                body += text
+                case ast.Raw():
+                    assert raw, 'Raw AST node in non-raw context; probably a parser bug'
+                    text = eval_text(p.text, env, raw)
+                    body += text
 
-            elif isinstance(p, ast.Paragraph):
-                text = eval_text(p.text, env, raw)
-                body += text if tight else env.p(text)
+                case ast.Paragraph():
+                    text = eval_text(p.text, env, raw)
+                    body += text if tight else env.p(text)
 
-            elif isinstance(p, ast.Itemized):
-                items = ''
-                for item in p.items:
-                    text = eval_text(item.text, env, raw)
-                    items += env.li(text)
-                body += env.ul(items)
+                case ast.Itemized():
+                    items = ''
+                    for item in p.items:
+                        text = eval_text(item.text, env, raw)
+                        items += env.li(text)
+                    body += env.ul(items)
 
-            elif isinstance(p, ast.Heading):
-                text = eval_text(p.text, env, raw)
-                body += env.heading(p.level, text)
+                case ast.Heading():
+                    text = eval_text(p.text, env, raw)
+                    body += env.heading(p.level, text)
 
-            else:
-                raise Exception('Bad block: ' + str(p))
+                case _:
+                    raise Exception('Bad block: ' + str(p))
 
 
     except Exception as e:
