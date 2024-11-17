@@ -67,6 +67,7 @@ def contextualize(src, ctx):
     setattr(ctx, name, make_template_runner(src).__get__(ctx))
 
 def make_template_runner(src):
+    @appeldryck.indented
     def run_template(self):
         return appeldryck.render(self, src)
     return run_template

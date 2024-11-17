@@ -1,6 +1,5 @@
 import inspect
 import re
-import uuid
 
 from .parser import ast
 from .parser.lex import lexer
@@ -73,10 +72,11 @@ def apply_func(fn, args, env, raw, indent):
     ret = fn(*parsed_args)
 
     # TODO: Don't emit trailing whitespace!
+    print(f'indent is {indent} and indented is {indented} for {fn.__name__}')
     if indented:
         if len(ret) > 0 and ret[-1] == '\n':
             ret = ret[:-1]
-        ret = ret.replace('\n', '\n' + indent)
+        ret = ret.replace('\n', '\n' + ' ' * indent)
 
     if not isinstance(ret, str):
         raise Exception(f'Expected {fn} to return str, but got {ret}')
@@ -128,7 +128,7 @@ def eval_text(elements, env, raw):
                 # is a function call with arguments.
                 # A plain ◊foo with no args
                 # can be either a variable or a nullary function call.
-                indent = 0  # TODO: get_indent(text, tok)
+                indent = get_indent(text)
                 fn = getattr(env, t.func)
                 if callable(fn):
                     ret = apply_func(fn, t.args, env, raw, indent)
@@ -141,7 +141,7 @@ def eval_text(elements, env, raw):
                     raise DryckException('Tried to pass args to a non-callable')
 
             case ast.Link():
-                indent = 0  # TODO: get_indent(text, tok)
+                indent = get_indent(text)
                 text += apply_func(env.wiki_link, (t.dest, t.label), env, raw, indent)
 
             case ast.Text():
@@ -234,8 +234,7 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
 
 WHITESPACE_RE = re.compile(r'[\t ]*')
 
-# Based upon find_column from https://ply.readthedocs.io/en/latest/ply.html
-def get_indent(text, tok):
-    line_start = text.rfind('\n', 0, tok.lexpos) + 1
-    candidate = text[line_start:tok.lexpos]
-    return candidate if WHITESPACE_RE.match(candidate) else ''
+def get_indent(text):
+    '''Returns the indentation level of the last line of "text"'''
+    pos = text.rfind('\n') + 1
+    return len(text[pos:]) - len(text[pos:].lstrip(' '))

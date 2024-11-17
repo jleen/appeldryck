@@ -1,5 +1,4 @@
 - .dryck files should be discovered and wrapped as objects (or classes?) on initialization
-- Fix indent
 - Fix line number for error
 - Accept blank output from ◊functions
 - Maybe rewire context dict to return None instead of throwing for missing attributes
