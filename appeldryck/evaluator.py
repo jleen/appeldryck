@@ -1,10 +1,14 @@
 import inspect
+import logging
 import re
 
 from .parser import ast
 from .parser.lex import lexer
 from .parser.parse import parser
 from .parser.rawparse import raw_parser
+
+
+logger = logging.getLogger(__name__)
 
 
 class DryckException(Exception):
@@ -72,7 +76,7 @@ def apply_func(fn, args, env, raw, indent):
     ret = fn(*parsed_args)
 
     # TODO: Don't emit trailing whitespace!
-    print(f'indent is {indent} and indented is {indented} for {fn.__name__}')
+    logger.debug(f'indent is {indent} and indented is {indented} for {fn.__name__}')
     if indented:
         if len(ret) > 0 and ret[-1] == '\n':
             ret = ret[:-1]
@@ -132,8 +136,6 @@ def eval_text(elements, env, raw):
                 fn = getattr(env, t.func)
                 if callable(fn):
                     ret = apply_func(fn, t.args, env, raw, indent)
-                    # TODO: Handle props.
-                    props = get_func_props(fn)
                     text += ret
                 elif len(t.args) == 0:
                     text += fn
