@@ -1,4 +1,6 @@
 - .dryck files should be discovered and wrapped as objects (or classes?) on initialization
+- better indentation for e.g. ul and ol
+- Glitch with stars at the ends of lines
 - Fix line number for error
 - Accept blank output from ◊functions
 - Maybe rewire context dict to return None instead of throwing for missing attributes

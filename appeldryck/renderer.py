@@ -7,15 +7,19 @@ from . import evaluator
 
 
 def _render(env, filename, raw):
+    if not isinstance(filename, Path):
+        filename = Path(filename)
+    raw_text = filename.read_text()
+    return _render_string(env, raw_text, raw, filename)
+
+
+def _render_string(env, raw_text, raw, filename):
     try:
-        # Evaluate the page markup and put it in the context.
-        if not isinstance(filename, Path):
-            filename = Path(filename)
-        raw_text = filename.read_text()
         if hasattr(env, 'replace'):
             for (old, new) in env.replace.items():
                 raw_text = raw_text.replace(old, new)
 
+        # Evaluate the page markup and put it in the context.
         env.body = evaluator.eval_page(raw_text, env, raw, name=filename)
         return env.body
     except evaluator.SuppressPageGenerationException:
