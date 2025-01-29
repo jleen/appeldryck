@@ -26,7 +26,7 @@ def build():
     the_walk = list(Path(SRC).walk())
 
     # Preload _templates
-    for root, dirs, files in the_walk:
+    for root, _, files in the_walk:
         for src in files:
             src = root / src
             if src.suffix == '.dryck' and src.name.startswith('_'):
@@ -35,7 +35,7 @@ def build():
                 raw = len(src.suffixes) > 1
                 contextualize(src, ctx, raw)
 
-    for root, dirs, files in the_walk:
+    for root, _, files in the_walk:
         destdir = Path(DEST) / root.relative_to(SRC)
         print(f'creating {destdir}')
         makedirs(destdir)

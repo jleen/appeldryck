@@ -6,7 +6,7 @@ from . import context
 from . import evaluator
 
 
-def _render(env, filename, raw):
+def _render_file(env, filename, raw):
     if not isinstance(filename, Path):
         filename = Path(filename)
     raw_text = filename.read_text()
@@ -28,20 +28,33 @@ def _render_string(env, raw_text, raw, filename):
 
 
 def markup(env, filename):
-    return _render(env, filename, False)
+    '''Run the given file in page mode.'''
+    try:
+        return _render_file(env, filename, False)
+    except evaluator.DryckException as e:
+        # Suppress callstack for parser internals.
+        raise evaluator.DryckException(e) from e.__cause__
 
 
 def preprocess(env, filename):
+    '''Run the given file in preprocessor mode.'''
     # If we were passed a dict, it's safe to assume we wanted a generic
     # Context object, since we're in preprocessor mode.
     if type(env) is dict:
         ctx = context.Context()
         ctx.__dict__ |= env
         env = ctx
-    return _render(env, filename, True)
+    try:
+        return _render_file(env, filename, True)
+    except evaluator.DryckException as e:
+        # Suppress callstack for parser internals.
+        raise evaluator.DryckException(e) from e.__cause__
 
 
 def render(env, page_filename, template_filename=[], out_filename=None):
+    '''Easy mode: Run the given file in page mode, injecting the result into each of the
+    supplied templates, turduckenwise. Snarf up the global namespace into the context,
+    and allow specifying an output filename for convenience.'''
     try:
         # Add the global dict to the context, to keep simple projects simple.
         env.__dict__.update(sys.modules['__main__'].__dict__)
@@ -64,4 +77,5 @@ def render(env, page_filename, template_filename=[], out_filename=None):
 
         return env.body
     except evaluator.DryckException as e:
+        # Suppress callstack for parser internals.
         raise evaluator.DryckException(e) from e.__cause__
