@@ -7,7 +7,7 @@ from .baseparse import *
 
 def p_block_itemized(p):
     'block : items'
-    p[0] = ast.Itemized(p[1], ordered=False)
+    p[0] = ast.Itemized(p.linespan(0), p.lexspan(0), p[1], ordered=False)
 
 def p_items_list(p):
     'items : item items'
@@ -19,7 +19,7 @@ def p_items_base(p):
 
 def p_item(p):
     'item : BULLET elements'
-    p[0] = ast.Item(p[2])
+    p[0] = ast.Item(p.linespan(0), p.lexspan(0), p[2])
 
 
 #
@@ -28,7 +28,7 @@ def p_item(p):
 
 def p_block_heading(p):
     'block : OCTOTHORPE elements'
-    p[0] = ast.Heading(p[2], p[1].count('#'))
+    p[0] = ast.Heading(p.linespan(0), p.lexspan(0), p[2], p[1].count('#'))
 
 
 #
@@ -53,7 +53,7 @@ def p_spans_text(p):
 
 def p_starred(p):
     'starred : STAR starfields STAR'
-    p[0] = [ast.Star(p[2])]
+    p[0] = [ast.Star(p.linespan(0), p.lexspan(0), p[2])]
 
 def p_starfields_list(p):
     'starfields : starfield starfields'

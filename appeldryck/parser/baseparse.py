@@ -11,9 +11,10 @@ from . import ast
 def p_document(p):
     'document : defs blanks blocks'
     if p.parser.raw and len(p[2]) > 0:
-        p[0] = ast.Document(p[1], [ast.Raw([ast.Text(p[2])])] + p[3])
+        # TODO: Ideally we should merge the spans for 2 and 3.
+        p[0] = ast.Document(p.linespan(0), p.lexspan(0), p[1], [ast.Raw(p.linespan(2), p.lexspan(2), [ast.Text(p.linespan(2), p.lexspan(2), p[2])])] + p[3])
     else:
-        p[0] = ast.Document(p[1], p[3])
+        p[0] = ast.Document(p.linespan(0), p.lexspan(0), p[1], p[3])
 
 def p_defs_list(p):
     'defs : metadata defs'
@@ -31,7 +32,7 @@ def p_blanks(p):
 def p_blocks_list(p):
     'blocks : block BREAK blocks'
     if p.parser.raw:
-        p[0] = [p[1], ast.Raw([ast.Text(p[2])])] + p[3]
+        p[0] = [p[1], ast.Raw(p.linespan(0), p.lexspan(0), [ast.Text(p.linespan(0), p.lexspan(0), p[2])])] + p[3]
     else:
         p[0] = [p[1]] + p[3]
 
@@ -51,9 +52,9 @@ def p_block_elements(p):
     if len(elements) > 0 and isinstance(elements[-1], ast.Soft):
         elements = elements[:-1]
     if p.parser.raw:
-        p[0] = ast.Raw(elements)
+        p[0] = ast.Raw(p.linespan(0), p.lexspan(0), elements)
     else:
-        p[0] = ast.Paragraph(elements)
+        p[0] = ast.Paragraph(p.linespan(0), p.lexspan(0), elements)
 
 def p_elements_list(p):
     'elements : element elements'
@@ -71,7 +72,7 @@ def p_elements_empty(p):
 def p_metadata(p):
     '''metadata : METATAG METAVAL
                 | METATAG METAVAL METAEOL'''
-    p[0] = ast.Def(p[1], p[2])
+    p[0] = ast.Def(p.linespan(0), p.lexspan(0), p[1], p[2])
 
 
 #
@@ -80,7 +81,7 @@ def p_metadata(p):
 
 def p_eval(p):
     'eval : EVAL arg'
-    p[0] = [ast.Eval(p[2])]
+    p[0] = [ast.Eval(p.linespan(0), p.lexspan(0), p[2])]
 
 def p_arg(p):
     'arg : LBRACE argcomps RBRACE'
@@ -109,7 +110,7 @@ def p_argcomp_balanced(p):
 
 def p_apply(p):
     'apply : FUNC arglist'
-    p[0] = [ast.Apply(p[1], p[2])]
+    p[0] = [ast.Apply(p.linespan(0), p.lexspan(0), p[1], p[2])]
 
 def p_arglist_list(p):
     'arglist : arg arglist'
@@ -127,7 +128,7 @@ def p_arglist_empty(p):
 def p_link(p):
     'link : LINK'
     (dest, label) = p[1]
-    p[0] = [ast.Link(dest, label)]
+    p[0] = [ast.Link(p.linespan(0), p.lexspan(0), dest, label)]
 
 
 #
@@ -141,11 +142,11 @@ def p_text(p):
     # In the middle of a span, we can safely convert newlines to spaces.
     chars = p[1]
     if p.parser.raw:
-        p[0] = [ast.Text(chars)]
+        p[0] = [ast.Text(p.linespan(0), p.lexspan(0), chars)]
     else:
         out = []
         if chars.startswith('\n'):
-            out.append(ast.Soft())
+            out.append(ast.Soft(p.linespan(0), p.lexspan(0)))
             chars = chars[1:]
         if chars.endswith('\n'):
             append_soft = True
@@ -153,9 +154,9 @@ def p_text(p):
         else:
             append_soft = False
         if len(chars) > 0:
-            out.append(ast.Text(chars.replace('\n', ' ')))
+            out.append(ast.Text(p.linespan(0), p.lexspan(0), chars.replace('\n', ' ')))
         if append_soft:
-            out.append(ast.Soft())
+            out.append(ast.Soft(p.linespan(0), p.lexspan(0)))
         p[0] = out
 
 def p_spans_empty(p):
@@ -164,7 +165,7 @@ def p_spans_empty(p):
 
 def p_hardbreak(p):
     'hardbreak : HARDBREAK'
-    p[0] = [ast.Break()]
+    p[0] = [ast.Break(p.linespan(0), p.lexspan(0))]
 
 def p_starfield(p):
     '''starfield : eval

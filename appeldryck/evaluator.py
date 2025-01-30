@@ -68,6 +68,7 @@ def apply_func(fn, args, env, raw, indent):
         parsed_args = [eval(arg, env.__dict__)
                        for arg in args]
     elif not lazy:
+        # TODO: Plumb current_token here.
         parsed_args = [eval_page(arg, env, tight=(not block), raw=raw, name=f'arg {i+1} of {fn.__name__}')
                        for (i, arg) in enumerate(args)]
     else:
@@ -112,10 +113,12 @@ def combine_until_close(tokens, multi=False):
     return out
 
 
-def eval_text(elements, env, raw):
+def eval_text(elements, env, raw, current_token):
     text = ''
 
     for t in elements:
+        current_token[0] = t
+
         match t:
 
             case ast.Eval():
@@ -153,7 +156,7 @@ def eval_text(elements, env, raw):
                 pass
 
             case ast.Star():
-                text += env.em(eval_text(t.text, env, raw))
+                text += env.em(eval_text(t.text, env, raw, current_token))
 
             case ast.Break():
                 text += env.br()
@@ -164,11 +167,12 @@ def eval_text(elements, env, raw):
     return text
 
 
-def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
+def eval_page(page_text, env, raw=False, tight=False, name=None, debug=False):
     body = ''
 
-    # TODO: Use filename for error handling.
-    lexer.lineno = 0
+    # The lexer is global so we have to reset here.
+    # Don’t talk to me about threading.
+    lexer.lineno = 1
 
     if debug:
         import logging
@@ -181,9 +185,9 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
     else:
         log = False
     if raw:
-        doc = raw_parser.parse(text, debug=log)
+        doc = raw_parser.parse(page_text, tracking=True, debug=log)
     else:
-        doc = parser.parse(text, debug=log)
+        doc = parser.parse(page_text, tracking=True, debug=log)
 
     if tight and not raw and len(doc.text) > 1:
         raise DryckException('Too many paragraphs in tight argument: ' + str(doc))
@@ -196,26 +200,29 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
             setattr(env, md.key, md.val)
 
         for p in doc.text:
+            # Save the current token for use in error handling.
+            # Box the token stash so we can mutate it inside subroutines.
+            current_token = [p]
             match p:
 
                 case ast.Raw():
                     assert raw, 'Raw AST node in non-raw context; probably a parser bug'
-                    text = eval_text(p.text, env, raw)
+                    text = eval_text(p.text, env, raw, current_token)
                     body += text
 
                 case ast.Paragraph():
-                    text = eval_text(p.text, env, raw)
+                    text = eval_text(p.text, env, raw, current_token)
                     body += text if tight else env.p(text)
 
                 case ast.Itemized():
                     items = ''
                     for item in p.items:
-                        text = eval_text(item.text, env, raw)
+                        text = eval_text(item.text, env, raw, current_token)
                         items += env.li(text)
                     body += env.ul(items)
 
                 case ast.Heading():
-                    text = eval_text(p.text, env, raw)
+                    text = eval_text(p.text, env, raw, current_token)
                     body += env.heading(p.level, text)
 
                 case _:
@@ -226,8 +233,11 @@ def eval_page(text, env, raw=False, tight=False, name=None, debug=False):
         if type(e) == SuppressPageGenerationException:
             raise
         else:
-            lineno = 0  # TODO
-            col = 0  # TODO
+            (lineno, _) = current_token[0].linespan
+            (lexpos, _) = current_token[0].lexspan
+            # From https://ply.readthedocs.io/en/latest/ply.html
+            line_start = page_text.rfind('\n', 0, lexpos)
+            col = lexpos - line_start
             raise DryckException(f'Error on line {lineno} col {col}' +
                                  f' of {name}' if name else '') from e
 

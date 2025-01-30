@@ -3,7 +3,6 @@
 - .dryck files should be discovered and wrapped as objects (or classes?) on initialization
 - better indentation for e.g. ul and ol
 - BUG: Need to emit whitespace after stars at the ends of lines
-- Fix line number for error
 - Accept blank output from ◊functions
 - Should @indented just be the default?
 - Allow string input, especially for templates

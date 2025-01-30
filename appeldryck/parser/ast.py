@@ -1,14 +1,19 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
 
 @dataclass
-class Def:
+class Node:
+    linespan: Tuple[int, int]
+    lexspan: Tuple[int, int]
+
+@dataclass
+class Def(Node):
     key: str
     val: str
 
 @dataclass
-class Element:
+class Element(Node):
     pass
 
 @dataclass
@@ -42,7 +47,7 @@ class Star(Element):
     text: List[Element]
 
 @dataclass
-class Block:
+class Block(Node):
     pass
 
 @dataclass
@@ -59,7 +64,7 @@ class Paragraph(Block):
     text: List[Element]
 
 @dataclass
-class Item:
+class Item(Node):
     text: List[Element]
 
 @dataclass
@@ -68,6 +73,6 @@ class Itemized(Block):
     ordered: bool
 
 @dataclass
-class Document:
+class Document(Node):
     metatext: List[Def]
     text: List[Block]
