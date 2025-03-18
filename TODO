@@ -1,3 +1,4 @@
+- does ◊loop even work?!
 - clean up renderer and builder interfaces
 - file-based functions should be scoped to their dir and subdirs
 - .dryck files should be discovered and wrapped as objects (or classes?) on initialization

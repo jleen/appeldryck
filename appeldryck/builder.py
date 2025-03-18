@@ -13,41 +13,93 @@ from . import renderer
 SRC = 'site'
 DEST = 'dist'
 
+def clone_dict(obj):
+    return swap_dict(obj, obj.__dict__.copy())
+
+def swap_dict(obj, new_dict):
+    # TODO: Use an overlay here.
+    #       In fact, this probably isn’t quite meta enough.
+    #       What if obj doesn’t store its properties in a dict?
+    old_dict = obj.__dict__
+    obj.__dict__ = new_dict
+    return old_dict
+
+def load_module_from_file(src):
+    # This is a little arcane, but we’re just loading the supplied Python module.
+    # TODO: What does the module name actually matter for?
+    loader = importlib.machinery.SourceFileLoader('project', src)
+    spec = importlib.util.spec_from_loader('project', loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)
+    return mod
+
 def build():
+    '''The command line entry point.'''
+
+    # The project may have supplied its own context definition.
+    # If not, use a default HTML context.
     if not Path('./dryck.py').exists:
         ctx = appeldryck.HtmlContext()
     else:
-        loader = importlib.machinery.SourceFileLoader('project', './dryck.py' )
-        spec = importlib.util.spec_from_loader('project', loader)
-        mod = importlib.util.module_from_spec(spec)
-        loader.exec_module(mod)
+        # Instantiate the first class definition we find in the dryck module.
+        # TODO: Handle the case where we have “loose” functions instead of a class.
+        mod = load_module_from_file('./dryck.py')
+        # TODO: Probably we can use a lazy sequence here?
         ctx = [cls for _, cls in inspect.getmembers(mod) if inspect.isclass(cls)][0]()
 
     the_walk = list(Path(SRC).walk())
 
-    # Preload _templates
-    for root, _, files in the_walk:
+    dir_stack = []
+
+    for dir, _, files in the_walk:
+        if len(dir_stack) > 0:
+            while not dir.is_relative_to(dir_stack[-1][0]):
+                # As we unwind the dir stack, also restore the saved context dict.
+                swap_dict(ctx, dir_stack.pop()[1])
+
+        # Now that we’re sufficiently unwound, we can push the new dir.
+        # We also save the old context dict so we can start adding new context definitions
+        # that will be local to the current dir and its subdirs.
+        dir_stack.append((dir, clone_dict(ctx)))
+
+        # If there’s a _dryck.py in the current dir,
+        # load its definitions into the top of the context stack.
+        # I suppose this could happen in the same pass that loads the .dryck files
+        # since .dryck evaluation is lazy, but this seems cleaner.
         for src in files:
-            src = root / src
+            if src == '_dryck.py':
+                mod = load_module_from_file(str(dir / src))
+                # TODO: Is there a cleaner way to do this?
+                ctx.__dict__.update(mod.__dict__)
+
+        # Any .dryck file starting with _ is a function definition rather than a target.
+        # Read them all into the top of the context stack.
+        for src in files:
+            src = dir / src
             if src.suffix == '.dryck' and src.name.startswith('_'):
                 print(f'importing {src} into context')
-                # If there are multiple extensions, e.g. .html.dryck, then this is a template.
+                # If there are multiple extensions, e.g. .html.dryck, then this is a dryck template.
+                # Otherwise it’s dryck markup.
                 raw = len(src.suffixes) > 1
-                contextualize(src, ctx, raw)
+                add_file_to_context(src, ctx, raw)
 
-    for root, _, files in the_walk:
-        destdir = Path(DEST) / root.relative_to(SRC)
+        # Now we’re ready to render this directory.
+        destdir = Path(DEST) / dir.relative_to(SRC)
         print(f'creating {destdir}')
         makedirs(destdir)
 
         for src in files:
-            src = root / src
+            src = dir / src
             if src.name.startswith('_'): continue
             if src.suffix == '.dryck':
-                if len(src.suffixes) == 1:
-                    process(src, ctx)
-                else:
-                    preprocess(src, ctx)
+                try:
+                    if len(src.suffixes) == 1:
+                        process(src, ctx)
+                    else:
+                        preprocess(src, ctx)
+                except Exception as e:
+                    e.add_note(f'while rendering {src}')
+                    raise
             else:
                 copy(src)
 
@@ -88,11 +140,11 @@ def preprocess(src, ctx):
     with open(dest, 'w') as out:
         out.write(body)
 
-def contextualize(src, ctx, raw):
+def add_file_to_context(src, ctx, raw):
     name = src.stem.lstrip('_')
-    setattr(ctx, name, make_template_runner(src, raw).__get__(ctx))
+    setattr(ctx, name, curry_file_as_function(src, raw).__get__(ctx))
 
-def make_template_runner(src, raw):
+def curry_file_as_function(src, raw):
     @appeldryck.indented
     def run_template(self):
         if raw:
