@@ -52,6 +52,11 @@ def build():
     dir_stack = []
 
     for dir, _, files in the_walk:
+        # Loading _dryck files can produce __pycache__ in the project tree. Skip it!
+        # TODO: Can we avoid producing them in the first place?
+        if dir.name == '__pycache__':
+            continue
+
         if len(dir_stack) > 0:
             while not dir.is_relative_to(dir_stack[-1][0]):
                 # As we unwind the dir stack, also restore the saved context dict.
