@@ -238,8 +238,12 @@ def eval_page(page_text, env, raw=False, tight=False, name=None, debug=False):
             # From https://ply.readthedocs.io/en/latest/ply.html
             line_start = page_text.rfind('\n', 0, lexpos)
             col = lexpos - line_start
-            raise DryckException(f'Error on line {lineno} col {col}' +
-                                 f' of {name}' if name else '') from e
+            # Maybe using both add_note and “raise from” is a bit of a
+            # belt-and-suspenders approach.
+            # But it does make exception stacks a lot easier for the user to read.
+            where = f'line {lineno} col {col}' + f' of {name}' if name else ''
+            e.add_note(f'while rendering {where}')
+            raise DryckException(f'Error {where}') from e
 
     return body
 

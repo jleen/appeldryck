@@ -98,7 +98,7 @@ def build():
                     else:
                         preprocess(src, ctx)
                 except Exception as e:
-                    e.add_note(f'while rendering {src}')
+                    e.add_note(f'while rendering {src} from the project tree')
                     raise
             else:
                 copy(src)
