@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import inspect
+import overlay
 import shutil
 
 from pathlib import Path
@@ -12,17 +13,6 @@ from . import renderer
 
 SRC = 'site'
 DEST = 'dist'
-
-def clone_dict(obj):
-    return swap_dict(obj, obj.__dict__.copy())
-
-def swap_dict(obj, new_dict):
-    # TODO: Use an overlay here.
-    #       In fact, this probably isn’t quite meta enough.
-    #       What if obj doesn’t store its properties in a dict?
-    old_dict = obj.__dict__
-    obj.__dict__ = new_dict
-    return old_dict
 
 def load_module_from_file(src):
     # This is a little arcane, but we’re just loading the supplied Python module.
@@ -47,69 +37,68 @@ def build():
         # TODO: Probably we can use a lazy sequence here?
         ctx = [cls for _, cls in inspect.getmembers(mod) if inspect.isclass(cls)][0]()
 
-    the_walk = list(Path(SRC).walk())
-
-    dir_stack = []
-
-    for dir, _, files in the_walk:
-        # Loading _dryck files can produce __pycache__ in the project tree. Skip it!
-        # TODO: Can we avoid producing them in the first place?
-        if dir.name == '__pycache__':
-            continue
-
-        if len(dir_stack) > 0:
-            while not dir.is_relative_to(dir_stack[-1][0]):
-                # As we unwind the dir stack, also restore the saved context dict.
-                swap_dict(ctx, dir_stack.pop()[1])
-
-        # Now that we’re sufficiently unwound, we can push the new dir.
-        # We also save the old context dict so we can start adding new context definitions
-        # that will be local to the current dir and its subdirs.
-        dir_stack.append((dir, clone_dict(ctx)))
-
-        # If there’s a _dryck.py in the current dir,
-        # load its definitions into the top of the context stack.
-        # I suppose this could happen in the same pass that loads the .dryck files
-        # since .dryck evaluation is lazy, but this seems cleaner.
-        for src in files:
-            if src == '_dryck.py':
-                mod = load_module_from_file(str(dir / src))
-                # TODO: Is there a cleaner way to do this?
-                ctx.__dict__.update(mod.__dict__)
-
-        # Any .dryck file starting with _ is a function definition rather than a target.
-        # Read them all into the top of the context stack.
-        for src in files:
-            src = dir / src
-            if src.suffix == '.dryck' and src.name.startswith('_'):
-                print(f'importing {src} into context')
-                # If there are multiple extensions, e.g. .html.dryck, then this is a dryck template.
-                # Otherwise it’s dryck markup.
-                raw = len(src.suffixes) > 1
-                add_file_to_context(src, ctx, raw)
-
-        # Now we’re ready to render this directory.
-        destdir = Path(DEST) / dir.relative_to(SRC)
-        print(f'creating {destdir}')
-        makedirs(destdir)
-
-        for src in files:
-            src = dir / src
-            if src.name.startswith('_'): continue
-            if src.suffix == '.dryck':
-                try:
-                    if len(src.suffixes) == 1:
-                        process(src, ctx)
-                    else:
-                        preprocess(src, ctx)
-                except Exception as e:
-                    e.add_note(f'while rendering {src} from the project tree')
-                    raise
-            else:
-                copy(src)
+    process_dir(Path(SRC), ctx)
 
     if hasattr(ctx, 'post'):
         ctx.post()
+
+
+def process_dir(path: Path, ctx):
+    items = sorted(list(path.iterdir()))
+
+    # If there’s a _dryck.py in the current dir,
+    # load its definitions into the top of the context stack.
+    # I suppose this could happen in the same pass that loads the .dryck files
+    # since .dryck evaluation is lazy, but this seems cleaner.
+    for item in items:
+        if item.is_file():
+            if item.name == '_dryck.py':
+                mod = load_module_from_file(str(item))
+                # TODO: Is there a cleaner way to do this?
+                ctx.__dict__.update(mod.__dict__)
+
+    # Any .dryck file starting with _ is a function definition rather than a target.
+    # Read them all into the top of the context stack.
+    for item in items:
+        if item.suffix == '.dryck' and item.name.startswith('_'):
+            print(f'importing {item} into context')
+            # If there are multiple extensions, e.g. .html.dryck, then this is a dryck template.
+            # Otherwise it’s dryck markup.
+            raw = len(item.suffixes) > 1
+            add_file_to_context(item, ctx, raw)
+
+    # Create the target directory for this source directory.
+    destdir = Path(DEST) / path.relative_to(SRC)
+    print(f'creating {destdir}')
+    makedirs(destdir)
+
+    # Render all the dryck files and copy all the static files in this directory.
+    for item in items:
+        if not item.is_file(): continue
+        if item.name.startswith('_'): continue
+        if item.suffix == '.dryck':
+            try:
+                if len(item.suffixes) == 1:
+                    process(item, ctx)
+                else:
+                    preprocess(item, ctx)
+            except Exception as e:
+                e.add_note(f'while rendering {item} from the project tree')
+                raise
+        else:
+            copy(item)
+
+    # Recurse into any subdirectories.
+    for item in items:
+        if item.is_dir():
+            # Loading _dryck files can produce __pycache__ in the project tree. Skip it!
+            # TODO: Can we avoid producing them in the first place?
+            if item.name == '__pycache__':
+                continue
+            else:
+                class Subcontext: pass
+                process_dir(item, overlay.overlay(Subcontext, ctx))
+
 
 def makedirs(dir):
     Path(dir).mkdir(exist_ok=True)

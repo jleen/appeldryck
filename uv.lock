@@ -6,3 +6,14 @@ requires-python = ">=3.12"
 name = "appeldryck"
 version = "0.5.0"
 source = { editable = "." }
+dependencies = [
+    { name = "overlay" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "overlay", git = "https://github.com/jleen/python-overlay-class?rev=78224414d42882e8eb6d08544ea2b41c87fc5a1c" }]
+
+[[package]]
+name = "overlay"
+version = "0.1.0"
+source = { git = "https://github.com/jleen/python-overlay-class?rev=78224414d42882e8eb6d08544ea2b41c87fc5a1c#78224414d42882e8eb6d08544ea2b41c87fc5a1c" }
