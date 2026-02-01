@@ -97,7 +97,11 @@ def process_dir(path: Path, ctx):
                 continue
             else:
                 class Subcontext: pass
-                process_dir(item, overlay.overlay(Subcontext, ctx))
+                try:
+                    process_dir(item, overlay.overlay(Subcontext, ctx))
+                except Exception as e:
+                    e.add_note(f'while rendering project directory {item}')
+                    raise
 
 
 def makedirs(dir):
