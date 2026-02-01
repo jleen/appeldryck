@@ -11,9 +11,9 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "overlay", git = "https://github.com/jleen/python-overlay-class?rev=78224414d42882e8eb6d08544ea2b41c87fc5a1c" }]
+requires-dist = [{ name = "overlay", git = "https://github.com/jleen/python-overlay-class" }]
 
 [[package]]
 name = "overlay"
 version = "0.1.0"
-source = { git = "https://github.com/jleen/python-overlay-class?rev=78224414d42882e8eb6d08544ea2b41c87fc5a1c#78224414d42882e8eb6d08544ea2b41c87fc5a1c" }
+source = { git = "https://github.com/jleen/python-overlay-class#af351b023b8a10e97d8f8184bed924fcdd116283" }

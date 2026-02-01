@@ -16,4 +16,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.uv.sources]
-overlay = { git = "https://github.com/jleen/python-overlay-class", rev = "78224414d42882e8eb6d08544ea2b41c87fc5a1c" }
+overlay = { git = "https://github.com/jleen/python-overlay-class" }
