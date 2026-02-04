@@ -44,8 +44,11 @@ def t_meta_METAEOL(t):
 #
 
 def t_FUNC(t):
-    r'◊\w+'
-    t.value = t.value[1:]
+    r'◊(\w+|\([^)]*\))'
+    if t.value.startswith('◊('):
+        t.value = t.value[2:-1]
+    else:
+        t.value = t.value[1:]
     return t
 
 def t_EVAL(t):
