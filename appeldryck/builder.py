@@ -14,6 +14,7 @@ from . import renderer
 SRC = 'site'
 DEST = 'dist'
 
+
 def load_module_from_file(src):
     # This is a little arcane, but we’re just loading the supplied Python module.
     # TODO: What does the module name actually matter for?
@@ -23,8 +24,9 @@ def load_module_from_file(src):
     loader.exec_module(mod)
     return mod
 
+
 def build():
-    '''The command line entry point.'''
+    """The command line entry point."""
 
     # The project may have supplied its own context definition.
     # If not, use a default HTML context.
@@ -74,8 +76,10 @@ def process_dir(path: Path, ctx):
 
     # Render all the dryck files and copy all the static files in this directory.
     for item in items:
-        if not item.is_file(): continue
-        if item.name.startswith('_'): continue
+        if not item.is_file():
+            continue
+        if item.name.startswith('_'):
+            continue
         if item.suffix == '.dryck':
             try:
                 if len(item.suffixes) == 1:
@@ -96,7 +100,10 @@ def process_dir(path: Path, ctx):
             if item.name == '__pycache__':
                 continue
             else:
-                class Subcontext: pass
+
+                class Subcontext:
+                    pass
+
                 try:
                     process_dir(item, overlay.overlay(Subcontext, ctx))
                 except Exception as e:
@@ -107,10 +114,12 @@ def process_dir(path: Path, ctx):
 def makedirs(dir):
     Path(dir).mkdir(exist_ok=True)
 
+
 def copy(src):
     dest = Path(DEST) / src.relative_to(SRC)
     print(f'copying {src} to {dest}')
     shutil.copy(src, dest)
+
 
 def process(src, ctx):
     # We need to process the markup first, in order to get the template name.
@@ -124,12 +133,16 @@ def process(src, ctx):
     with open(dest, 'w') as out:
         out.write(body)
 
+
 def indented_string(text):
-    '''Wrap a string in a function that is annotated as indented.'''
+    """Wrap a string in a function that is annotated as indented."""
+
     @appeldryck.indented
     def indented_wrapper():
         return text
+
     return indented_wrapper
+
 
 def preprocess(src, ctx):
     dest = Path(DEST) / src.relative_to(SRC).with_suffix('')
@@ -138,9 +151,11 @@ def preprocess(src, ctx):
     with open(dest, 'w') as out:
         out.write(body)
 
+
 def add_file_to_context(src, ctx, raw):
     name = src.stem.lstrip('_')
     setattr(ctx, name, curry_file_as_function(src, raw).__get__(ctx))
+
 
 def curry_file_as_function(src, raw):
     @appeldryck.indented
@@ -149,4 +164,5 @@ def curry_file_as_function(src, raw):
             return appeldryck.preprocess(self, src)
         else:
             return appeldryck.render(self, src)
+
     return run_template

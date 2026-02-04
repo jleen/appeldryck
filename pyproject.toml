@@ -17,3 +17,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.uv.sources]
 overlay = { git = "https://github.com/jleen/python-overlay-class" }
+
+[tool.ruff.format]
+quote-style = "single"
