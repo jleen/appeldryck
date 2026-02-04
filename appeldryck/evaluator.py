@@ -230,7 +230,7 @@ def eval_page(page_text, env, raw=False, tight=False, name=None, debug=False):
 
 
     except Exception as e:
-        if type(e) == SuppressPageGenerationException:
+        if type(e) is SuppressPageGenerationException:
             raise
         else:
             (lineno, _) = current_token[0].linespan
