@@ -160,6 +160,7 @@ def add_file_to_context(src, ctx, raw):
 
 def curry_file_as_function(src, raw):
     @appeldryck.indented
+    @appeldryck.glom
     def run_template(self):
         if raw:
             return appeldryck.preprocess(self, src)

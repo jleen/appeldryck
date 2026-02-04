@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import inspect
 import logging
 import re
@@ -48,28 +49,46 @@ def pyargs(f):
     return f
 
 
+def glom(f):
+    """Decorator for a dryck function that, if used as the entirety of a paragraph,
+    completely replaces the paragraph such that no enclosing tag is emitted."""
+    f._dryck_glom = True
+    return f
+
+
+@dataclass
+class Props:
+    lazy: bool
+    block: bool
+    indented: bool
+    pyargs: bool
+    glom: bool
+
+
 def get_func_props(fn):
-    lazy = hasattr(fn, '_dryck_raw')
-    block = hasattr(fn, '_dryck_block')
-    indented = hasattr(fn, '_dryck_indented')
-    pyargs = hasattr(fn, '_dryck_pyargs')
-    return (lazy, block, indented, pyargs)
+    return Props(
+        lazy=hasattr(fn, '_dryck_raw'),
+        block=hasattr(fn, '_dryck_block'),
+        indented=hasattr(fn, '_dryck_indented'),
+        pyargs=hasattr(fn, '_dryck_pyargs'),
+        glom=hasattr(fn, '_dryck_glom')
+    )
 
 
 def apply_func(fn, args, env, raw, indent):
     # TODO: What to do if meta variables get returned?
     # Read function decorators.
-    (lazy, block, indented, pyargs) = get_func_props(fn)
+    props = get_func_props(fn)
 
-    if pyargs and lazy:
+    if props.pyargs and props.lazy:
         raise Exception(f'Dryck function {fn} cannot be both pyargs and lazy')
 
-    if pyargs:
+    if props.pyargs:
         parsed_args = [eval(arg, env.__dict__)
                        for arg in args]
-    elif not lazy:
+    elif not props.lazy:
         # TODO: Plumb current_token here.
-        parsed_args = [eval_page(arg, env, tight=(not block), raw=raw, name=f'arg {i+1} of {fn.__name__}')
+        parsed_args = [eval_page(arg, env, tight=(not props.block), raw=raw, name=f'arg {i+1} of {fn.__name__}')
                        for (i, arg) in enumerate(args)]
     else:
         parsed_args = args
@@ -77,8 +96,8 @@ def apply_func(fn, args, env, raw, indent):
     ret = fn(*parsed_args)
 
     # TODO: Don't emit trailing whitespace!
-    logger.debug(f'indent is {indent} and indented is {indented} for {fn.__name__}')
-    if indented:
+    logger.debug(f'indent is {indent} and indented is {props.indented} for {fn.__name__}')
+    if props.indented:
         if len(ret) > 0 and ret[-1] == '\n':
             ret = ret[:-1]
         ret = ret.replace('\n', '\n' + ' ' * indent)
@@ -113,8 +132,11 @@ def combine_until_close(tokens, multi=False):
     return out
 
 
-def eval_text(elements, env, raw, current_token):
+def eval_text(elements, env, raw, current_token) -> tuple[str, bool]:
     text = ''
+    # To glom is to suppress the enclosing paragraph.
+    # We do this if we consist of a single function call that identifies itself as glomming.
+    glom = False
 
     for t in elements:
         current_token[0] = t
@@ -138,6 +160,8 @@ def eval_text(elements, env, raw, current_token):
                 indent = get_indent(text)
                 fn = getattr(env, t.func)
                 if callable(fn):
+                    if len(elements) == 1 and get_func_props(fn).glom:
+                        glom = True
                     ret = apply_func(fn, t.args, env, raw, indent)
                     text += ret
                 elif len(t.args) == 0:
@@ -156,7 +180,7 @@ def eval_text(elements, env, raw, current_token):
                 pass
 
             case ast.Star():
-                text += env.em(eval_text(t.text, env, raw, current_token))
+                text += env.em(eval_text(t.text, env, raw, current_token)[0])
 
             case ast.Break():
                 text += env.br()
@@ -164,7 +188,7 @@ def eval_text(elements, env, raw, current_token):
             case _:
                 raise Exception('Bad element: ' + str(t))
 
-    return text
+    return (text, glom)
 
 
 def eval_page(page_text, env, raw=False, tight=False, name=None, debug=False):
@@ -207,22 +231,24 @@ def eval_page(page_text, env, raw=False, tight=False, name=None, debug=False):
 
                 case ast.Raw():
                     assert raw, 'Raw AST node in non-raw context; probably a parser bug'
-                    text = eval_text(p.text, env, raw, current_token)
+                    (text, _) = eval_text(p.text, env, raw, current_token)
                     body += text
 
                 case ast.Paragraph():
-                    text = eval_text(p.text, env, raw, current_token)
-                    body += text if tight else env.p(text)
+                    (text, glom) = eval_text(p.text, env, raw, current_token)
+                    body += text if tight or glom else env.p(text)
+                    if glom and not text.endswith('\n'):
+                        body += '\n'
 
                 case ast.Itemized():
                     items = ''
                     for item in p.items:
-                        text = eval_text(item.text, env, raw, current_token)
+                        (text, _) = eval_text(item.text, env, raw, current_token)
                         items += env.li(text)
                     body += env.ul(items)
 
                 case ast.Heading():
-                    text = eval_text(p.text, env, raw, current_token)
+                    (text, _) = eval_text(p.text, env, raw, current_token)
                     body += env.heading(p.level, text)
 
                 case _:
