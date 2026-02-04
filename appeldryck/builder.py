@@ -21,8 +21,8 @@ def load_module_from_file(src):
     # TODO: What does the module name actually matter for?
     loader = importlib.machinery.SourceFileLoader('project', src)
     spec = importlib.util.spec_from_loader('project', loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
+    mod = importlib.util.module_from_spec(spec) if spec else None
+    loader.exec_module(mod) if mod else None
     return mod
 
 
