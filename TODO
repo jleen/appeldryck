@@ -1,4 +1,5 @@
 - avoid pycache in site subdir for _dryck.py
+- fix list item parsing
 - does ◊loop even work?!
 - clean up renderer and builder interfaces
 - file-based functions should be scoped to their dir and subdirs
